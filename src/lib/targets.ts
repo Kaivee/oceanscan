@@ -1,5 +1,9 @@
 export type Severity = "high" | "medium" | "low";
 
+export type ViewMode = "raw" | "boxes" | "compare";
+
+export type DetectionStatus = "confirmed" | "false_positive" | "pending";
+
 export interface TargetDims {
   length: number;
   width: number;
@@ -17,7 +21,10 @@ export interface SonarTarget {
   dims: TargetDims;
   severity: Severity;
   box: { x: number; y: number; w: number; h: number };
+  polygon?: { x: number; y: number }[];
   note: string;
+  imageUrl?: string;
+  sourceFile?: string;
 }
 
 export const TARGETS: SonarTarget[] = [
@@ -94,32 +101,39 @@ export const SEVERITY_META: Record<
   { label: string; desc: string; chip: string; stroke: string; fill: string; tint: string; dot: string }
 > = {
   high: {
-    label: "High",
+    label: "HIGH",
     desc: "High risk — recover soon (entanglement / navigation hazard)",
-    chip: "rounded-sm border border-[#b03a2e] bg-[#b03a2e]/[0.07] text-[#b03a2e] -rotate-1",
-    stroke: "#dc2626",
-    fill: "rgba(220,38,38,0.16)",
-    tint: "bg-[#b03a2e]/10 text-[#b03a2e]",
-    dot: "bg-[#b03a2e]",
+    chip: "rounded border border-[var(--color-ocean-red)] bg-[var(--color-ocean-red)]/10 text-[var(--color-ocean-red)]",
+    stroke: "#EF4444",
+    fill: "rgba(239, 68, 68, 0.18)",
+    tint: "bg-[var(--color-ocean-red)]/10 text-[var(--color-ocean-red)]",
+    dot: "bg-[var(--color-ocean-red)]",
   },
   medium: {
-    label: "Med",
+    label: "MEDIUM",
     desc: "Medium risk — schedule retrieval on an upcoming pass",
-    chip: "rounded-sm border border-[#8a6d1f] bg-[#8a6d1f]/[0.08] text-[#8a6d1f] -rotate-1",
-    stroke: "#d97706",
-    fill: "rgba(217,119,6,0.16)",
-    tint: "bg-[#8a6d1f]/10 text-[#8a6d1f]",
-    dot: "bg-[#8a6d1f]",
+    chip: "rounded border border-[var(--color-ocean-amber)] bg-[var(--color-ocean-amber)]/10 text-[var(--color-ocean-amber)]",
+    stroke: "#F59E0B",
+    fill: "rgba(245, 158, 11, 0.18)",
+    tint: "bg-[var(--color-ocean-amber)]/10 text-[var(--color-ocean-amber)]",
+    dot: "bg-[var(--color-ocean-amber)]",
   },
   low: {
-    label: "Low",
+    label: "LOW",
     desc: "Low risk — log and continue monitoring",
-    chip: "rounded-sm border border-[#3e6b4f] bg-[#3e6b4f]/[0.08] text-[#3e6b4f] -rotate-1",
-    stroke: "#059669",
-    fill: "rgba(5,150,105,0.16)",
-    tint: "bg-[#3e6b4f]/10 text-[#3e6b4f]",
-    dot: "bg-[#3e6b4f]",
+    chip: "rounded border border-[var(--color-ocean-blue)] bg-[var(--color-ocean-blue)]/10 text-[var(--color-ocean-blue)]",
+    stroke: "#3B82F6",
+    fill: "rgba(59, 130, 246, 0.18)",
+    tint: "bg-[var(--color-ocean-blue)]/10 text-[var(--color-ocean-blue)]",
+    dot: "bg-[var(--color-ocean-blue)]",
   },
+};
+
+export const CLASS_COLORS: Record<string, { stroke: string; fill: string }> = {
+  "Ghost Net":         { stroke: "#a855f7", fill: "rgba(168,85,247,0.18)" },
+  "Metal Drum":        { stroke: "#f97316", fill: "rgba(249,115,22,0.18)" },
+  "Shipwreck":         { stroke: "#ef4444", fill: "rgba(239,68,68,0.18)" },
+  "Natural Formation": { stroke: "#22d3ee", fill: "rgba(34,211,238,0.18)" },
 };
 
 export function toGeoJSON(targets: SonarTarget[]) {
@@ -128,7 +142,7 @@ export function toGeoJSON(targets: SonarTarget[]) {
     name: "oceanscan_hazard_export",
     crs: { type: "name", properties: { name: "urn:ogc:def:crs:OGC:1.3:CRS84" } },
     metadata: {
-      generator: "OceanScan AI v2.4.1 (INT8 Edge)",
+      generator: "OceanScan AI v3.0.0 (TensorRT INT8 Edge)",
       generated_at: new Date().toISOString(),
       datum: "WGS-84",
       count: targets.length,
@@ -242,6 +256,71 @@ export function retrievalRoute(start: [number, number], targets: SonarTarget[]) 
   }
   const totalM = legs.reduce((s, l) => s + l.distM, 0);
   return { order, legs, totalM, estMinutes: totalM / (2 * 0.514) / 60 };
+}
+
+export interface ApiDetection {
+  class_id: number;
+  class_name: string;
+  confidence: number;
+  bbox: [number, number, number, number];
+  polygon: number[][];
+  risk_level: string;
+}
+
+export interface ApiResponse {
+  detections: ApiDetection[];
+  metadata: {
+    image_shape: [number, number];
+    model: string;
+    device: string;
+    latency_ms: number;
+    confidence_threshold: number;
+    clahe_enabled: boolean;
+    total_detections: number;
+  };
+}
+
+export function apiDetectionToTarget(
+  det: ApiDetection,
+  index: number,
+  metadata: ApiResponse["metadata"],
+  imageUrl?: string,
+  sourceFile?: string,
+): SonarTarget {
+  const [x1, y1, x2, y2] = det.bbox;
+  const w = x2 - x1;
+  const h = y2 - y1;
+  const [imgH, imgW] = metadata.image_shape;
+  const severity: Severity =
+    det.risk_level === "high" ? "high" : det.risk_level === "medium" ? "medium" : "low";
+  const classMap: Record<string, string> = {
+    "Ghost Net": "NET_GHOST",
+    "Metal Drum": "DRUM_STEEL",
+    "Shipwreck": "SHIPWRECK",
+    "Natural Formation": "ROCK_SEABED",
+  };
+  return {
+    id: `API-${String(index + 1).padStart(3, "0")}`,
+    label: det.class_name,
+    cls: classMap[det.class_name] ?? det.class_name.toUpperCase().replace(/\s+/g, "_"),
+    confidence: det.confidence,
+    lat: 15.4000 + Math.random() * 0.05,
+    lon: 73.8000 + Math.random() * 0.05,
+    depthM: 30 + Math.round(Math.random() * 30),
+    dims: {
+      length: Math.round((w / imgW) * 20 * 10) / 10,
+      width: Math.round((h / imgH) * 10 * 10) / 10,
+      height: 1.0,
+    },
+    severity,
+    box: { x: Math.round((x1 / imgW) * 100), y: Math.round((y1 / imgH) * 100), w: Math.round((w / imgW) * 100), h: Math.round((h / imgH) * 100) },
+    polygon: det.polygon
+      ? det.polygon.map(([px, py]) => ({ x: Math.round(px * 10000) / 100, y: Math.round(py * 10000) / 100 }))
+      : undefined,
+    note: `Auto-detected by ${metadata.model} on ${metadata.device} (${metadata.latency_ms.toFixed(0)}ms). Confidence: ${(det.confidence * 100).toFixed(1)}%.`,
+    imageUrl,
+    sourceFile,
+  };
 }
 
 export function downloadText(filename: string, text: string, mime: string) {

@@ -1,0 +1,10 @@
+path: C:\Users\hikai\Desktop\visual studio\sih\sonar\data\sonar_combined
+train: train/images
+val: val/images
+test: test/images
+nc: 4
+names:
+- Ghost Net
+- Metal Drum
+- Shipwreck
+- Natural Formation

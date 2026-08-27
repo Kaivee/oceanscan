@@ -2,34 +2,18 @@
 
 import { useState } from "react";
 import { Braces, FileDown, Route, Table, Timer, TriangleAlert } from "lucide-react";
-import { EmptyState } from "@/components/analyze-tab";
-import {
-  MarineSurveyTable,
-  NumberTicker,
-  type AnomalyTarget,
-} from "@/components/marine-ui";
-import { downloadText, toCsv, type SonarTarget } from "@/lib/targets";
+import { EmptyState } from "@/components/analyze-tab-empty";
+import { NumberTicker } from "@/components/marine-ui";
+import { downloadText, toCsv, type SonarTarget, type DetectionStatus } from "@/lib/targets";
 
 interface ReportTabProps {
-  targets: SonarTarget[];
+  targets: (SonarTarget & { detectionStatus: DetectionStatus })[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onExportGeojson: () => void;
   onRetrievalPath: () => void;
   onGoAcquire: () => void;
-}
-
-function toAnomaly(t: SonarTarget): AnomalyTarget {
-  return {
-    id: t.id,
-    className: t.label,
-    confidence: t.confidence,
-    latitude: t.lat,
-    longitude: t.lon,
-    depth: t.depthM,
-    severity:
-      t.severity === "high" ? "High" : t.severity === "medium" ? "Medium" : "Low",
-  };
+  uploadedImageCount: number;
 }
 
 export default function ReportTab({
@@ -39,13 +23,17 @@ export default function ReportTab({
   onExportGeojson,
   onRetrievalPath,
   onGoAcquire,
+  uploadedImageCount,
 }: ReportTabProps) {
   const [minConf, setMinConf] = useState(0);
+  const [vessel, setVessel] = useState("MSV SAGAR-DHWANI");
+  const [sensor, setSensor] = useState("900 kHz Side-Scan Sonar");
+  const [surveyId, setSurveyId] = useState("GOA_SURVEY_L04");
 
   if (targets.length === 0) {
     return (
       <EmptyState
-        icon={<Table size={26} />}
+        icon={<Table size={24} />}
         title="No findings to report yet"
         body="Once a scan has run, every detected object is listed here with export options."
         cta="Go to Acquire"
@@ -56,29 +44,55 @@ export default function ReportTab({
 
   const visible = targets.filter((t) => t.confidence * 100 >= minConf);
   const highCount = targets.filter((t) => t.severity === "high").length;
+  const confirmedCount = targets.filter((t) => t.detectionStatus === "confirmed").length;
+  const falsePositiveCount = targets.filter((t) => t.detectionStatus === "false_positive").length;
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Contacts found" value={targets.length} />
-        <StatCard
-          label="High risk"
-          value={highCount}
-          tone={highCount > 0 ? "text-[#b03a2e]" : undefined}
-        />
-        <StatCard label="Area scanned" value={12.4} decimals={1} suffix=" km²" />
-        <StatCard
-          label="Mission time"
-          icon={<Timer size={15} />}
-          staticValue="14 m 32 s"
-        />
-      </div>
+    <div className="space-y-3">
+      <section className="overflow-hidden rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
+        <div className="border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[10px]">
+            <span className="text-[var(--color-ocean-muted)]">Vessel:</span>
+            <input
+              value={vessel}
+              onChange={(e) => setVessel(e.target.value)}
+              className="w-48 border-b border-[var(--color-ocean-border)] bg-transparent text-[var(--color-ocean-text)] focus:border-[var(--color-ocean-sky)] focus:outline-none"
+            />
+            <span className="text-[var(--color-ocean-muted)]">Sensor:</span>
+            <input
+              value={sensor}
+              onChange={(e) => setSensor(e.target.value)}
+              className="w-56 border-b border-[var(--color-ocean-border)] bg-transparent text-[var(--color-ocean-text)] focus:border-[var(--color-ocean-sky)] focus:outline-none"
+            />
+            <span className="text-[var(--color-ocean-muted)]">Datum:</span>
+            <span className="text-[var(--color-ocean-sky)]">WGS-84</span>
+            <span className="text-[var(--color-ocean-muted)]">Survey:</span>
+            <input
+              value={surveyId}
+              onChange={(e) => setSurveyId(e.target.value)}
+              className="w-36 border-b border-[var(--color-ocean-border)] bg-transparent text-[var(--color-ocean-sky)] focus:border-[var(--color-ocean-sky)] focus:outline-none"
+            />
+          </div>
+        </div>
 
-      <section className="overflow-hidden rounded-md border-2 border-[#22385c] bg-[#fbf7ee] shadow-sm">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b-2 border-[#22385c]/30 bg-[#efe6cf]/50 px-4 py-3">
+        <div className="grid grid-cols-2 gap-px bg-[var(--color-ocean-border)] md:grid-cols-5">
+          <StatCard label="Contacts found" value={targets.length} />
+          <StatCard
+            label="High risk"
+            value={highCount}
+            tone="text-[var(--color-ocean-red)]"
+          />
+          <StatCard label="Confirmed" value={confirmedCount} tone="text-emerald-400" />
+          <StatCard label="False positives" value={falsePositiveCount} tone="text-red-400" />
+          <StatCard label="Images scanned" value={uploadedImageCount} />
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
           <div className="mr-auto min-w-0">
-            <h2 className="font-serif text-sm font-bold text-[#1b2a4a]">Findings</h2>
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8a8574]">
+            <h2 className="font-mono text-xs font-bold text-[var(--color-ocean-text)]">HAZARD FINDINGS REGISTER</h2>
+            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ocean-muted)]">
               Click a row to select · filter weak matches below
             </p>
           </div>
@@ -86,7 +100,7 @@ export default function ReportTab({
           <div className="flex items-center gap-2.5">
             <label
               htmlFor="report-conf"
-              className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-[#6b5d3f]"
+              className="font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-[var(--color-ocean-muted)]"
               title="Only show objects scoring above this confidence"
             >
               Min confidence
@@ -98,63 +112,124 @@ export default function ReportTab({
               max={100}
               value={minConf}
               onChange={(e) => setMinConf(Number(e.target.value))}
-              className="w-32 md:w-44"
+              className="w-28 md:w-40"
               style={{ "--fill": `${minConf}%` } as React.CSSProperties}
             />
-            <span className="w-10 border border-[#22385c]/40 bg-white px-1.5 py-0.5 text-center font-mono text-[11px] font-bold tabular-nums text-[#22385c]">
+            <span className="w-10 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-1.5 py-0.5 text-center font-mono text-[10px] font-bold tabular-nums text-[var(--color-ocean-sky)]">
               {minConf}%
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={onExportGeojson}
               title="Download the findings as a GeoJSON FeatureCollection"
-              className="inline-flex items-center gap-1.5 rounded-sm bg-[#22385c] px-3 py-1.5 font-serif text-xs font-bold uppercase tracking-wide text-[#f6f1e7] transition hover:bg-[#1b2a4a]"
+              className="inline-flex items-center gap-1.5 rounded-sm bg-emerald-600 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white transition hover:bg-emerald-500"
             >
-              <Braces size={13} /> Export GeoJSON
+              <Braces size={12} /> Export GeoJSON
             </button>
             <button
               onClick={() =>
                 downloadText("oceanscan_hazard_report.csv", toCsv(targets), "text/csv")
               }
               title="Download a spreadsheet of all findings"
-              className="inline-flex items-center gap-1.5 rounded-sm border-2 border-[#22385c]/60 bg-transparent px-3 py-1.5 font-serif text-xs font-bold uppercase tracking-wide text-[#22385c] transition hover:bg-[#efe6cf]"
+              className="inline-flex items-center gap-1.5 rounded-sm border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--color-ocean-text)] transition hover:bg-[var(--color-ocean-card)]"
             >
-              <FileDown size={13} /> CSV Report
+              <FileDown size={12} /> CSV Report
             </button>
             <button
               onClick={onRetrievalPath}
               title="Plan an ROV route that visits the objects in priority order"
-              className="inline-flex items-center gap-1.5 rounded-sm border-2 border-[#b03a2e] bg-transparent px-3 py-1.5 font-serif text-xs font-bold uppercase tracking-wide text-[#b03a2e] transition hover:bg-[#b03a2e] hover:text-[#f6f1e7]"
+              className="inline-flex items-center gap-1.5 rounded-sm border border-red-500/60 bg-red-500/15 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-red-400 transition hover:bg-red-500/25"
             >
-              <Route size={13} /> Retrieval Path
+              <Route size={12} /> Retrieval Path
             </button>
           </div>
         </div>
 
-        <MarineSurveyTable
-          data={visible.map(toAnomaly)}
-          selectedId={selectedId ?? undefined}
-          onSelectTarget={onSelect}
-        />
+        <div className="overflow-x-auto">
+          <table className="w-full font-mono text-[10px]">
+            <thead>
+              <tr className="border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[var(--color-ocean-muted)] uppercase tracking-wider">
+                <th className="px-4 py-2 text-left">ID</th>
+                <th className="px-4 py-2 text-left">Class</th>
+                <th className="px-4 py-2 text-left">Conf</th>
+                <th className="px-4 py-2 text-left">Lat</th>
+                <th className="px-4 py-2 text-left">Lon</th>
+                <th className="px-4 py-2 text-left">Depth</th>
+                <th className="px-4 py-2 text-left">Severity</th>
+                <th className="px-4 py-2 text-left">Status</th>
+                <th className="px-4 py-2 text-left">Notes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--color-ocean-border)]">
+              {visible.map((t) => {
+                const statusColors: Record<DetectionStatus, string> = {
+                  confirmed: "text-emerald-400",
+                  false_positive: "text-red-400",
+                  pending: "text-[var(--color-ocean-muted)]",
+                };
+                const statusLabels: Record<DetectionStatus, string> = {
+                  confirmed: "Confirmed",
+                  false_positive: "False +",
+                  pending: "Pending",
+                };
+                return (
+                  <tr
+                    key={t.id}
+                    onClick={() => onSelect(t.id)}
+                    className={`cursor-pointer transition-colors ${
+                      t.id === selectedId
+                        ? "bg-[var(--color-ocean-surface)]"
+                        : "hover:bg-[var(--color-ocean-surface)]/50"
+                    }`}
+                  >
+                    <td className="px-4 py-2 text-[var(--color-ocean-sky)]">{t.id}</td>
+                    <td className="px-4 py-2 text-[var(--color-ocean-text)]">{t.label}</td>
+                    <td className="px-4 py-2 tabular-nums text-[var(--color-ocean-text)]">{Math.round(t.confidence * 100)}%</td>
+                    <td className="px-4 py-2 tabular-nums text-[var(--color-ocean-text)]">{t.lat.toFixed(4)}</td>
+                    <td className="px-4 py-2 tabular-nums text-[var(--color-ocean-text)]">{t.lon.toFixed(4)}</td>
+                    <td className="px-4 py-2 tabular-nums text-[var(--color-ocean-text)]">{t.depthM}m</td>
+                    <td className="px-4 py-2">
+                      <span
+                        className="rounded-sm px-1.5 py-0.5 text-[9px] font-bold"
+                        style={{
+                          backgroundColor: t.severity === "high" ? "rgba(239,68,68,0.15)" : t.severity === "medium" ? "rgba(245,158,11,0.15)" : "rgba(59,130,246,0.15)",
+                          color: t.severity === "high" ? "#EF4444" : t.severity === "medium" ? "#F59E0B" : "#3B82F6",
+                        }}
+                      >
+                        {t.severity.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className={`px-4 py-2 font-bold ${statusColors[t.detectionStatus]}`}>
+                      {statusLabels[t.detectionStatus]}
+                    </td>
+                    <td className="max-w-[200px] truncate px-4 py-2 text-[var(--color-ocean-muted)]">
+                      {t.note || "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
 
         {visible.length === 0 && (
-          <p className="border-t border-[#22385c]/20 px-4 py-8 text-center font-serif text-sm italic text-[#8a8574]">
+          <p className="border-t border-[var(--color-ocean-border)] px-4 py-8 text-center font-mono text-[11px] text-[var(--color-ocean-muted)]">
             No objects above {minConf}% confidence — lower the slider.
           </p>
         )}
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t-2 border-[#22385c]/20 bg-[#efe6cf]/40 px-4 py-2 font-mono text-[10px] text-[#6b5d3f]">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)]/50 px-4 py-2 font-mono text-[9px] text-[var(--color-ocean-muted)]">
           <span className="uppercase tracking-wider">
             Showing {visible.length} / {targets.length} contacts
           </span>
-          <span>AI model v2.4.1 · INT8 edge inference</span>
+          <span>AI model v3.0.0 · TensorRT INT8 edge inference</span>
         </div>
       </section>
 
-      <p className="flex items-start gap-2 rounded-sm border border-[#8a6d1f]/50 bg-[#8a6d1f]/[0.08] p-3 font-serif text-xs italic leading-relaxed text-[#6b5433]">
-        <TriangleAlert size={14} className="mt-0.5 shrink-0 not-italic" />
+      <p className="flex items-start gap-2 rounded-sm border border-[var(--color-ocean-amber)]/30 bg-[var(--color-ocean-amber)]/5 p-3 font-mono text-[11px] leading-relaxed text-[var(--color-ocean-amber)]/80">
+        <TriangleAlert size={13} className="mt-0.5 shrink-0" />
         Simulated dataset for demonstration — coordinates and contacts are illustrative.
         High-severity contacts should be verified by ROV before recovery operations.
       </p>
@@ -180,12 +255,12 @@ function StatCard({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="border-2 border-[#22385c] bg-[#fdfbf6] p-4 shadow-none">
-      <p className="flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-widest text-[#8a8574]">
+    <div className="bg-[var(--color-ocean-card)] p-4">
+      <p className="flex items-center gap-1.5 font-mono text-[9px] font-medium uppercase tracking-widest text-[var(--color-ocean-muted)]">
         {icon}
         {label}
       </p>
-      <p className={`mt-1.5 font-serif text-2xl font-bold tabular-nums ${tone ?? "text-[#1b2a4a]"}`}>
+      <p className={`mt-1.5 font-mono text-2xl font-bold tabular-nums ${tone ?? "text-[var(--color-ocean-text)]"}`}>
         {staticValue ?? (
           <>
             <NumberTicker value={value ?? 0} decimals={decimals} />

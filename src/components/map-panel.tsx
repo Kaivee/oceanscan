@@ -24,17 +24,6 @@ function proj(lat: number, lon: number) {
   };
 }
 
-function CompassRose({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 40 40" className={className}>
-      <circle cx="20" cy="20" r="18" fill="none" stroke="#22385c" strokeWidth="1" />
-      <circle cx="20" cy="20" r="12" fill="none" stroke="#22385c" strokeWidth="0.5" />
-      <path d="M20 2 L23 20 L20 38 L17 20 Z" fill="#22385c" />
-      <path d="M2 20 L20 17 L38 20 L20 23 Z" fill="#22385c" opacity="0.7" />
-    </svg>
-  );
-}
-
 interface MapPanelProps {
   targets: SonarTarget[];
   selectedId: string | null;
@@ -70,18 +59,18 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
   const lons = [73.74, 73.78, 73.82, 73.86];
 
   return (
-    <section className="overflow-hidden rounded-md border-2 border-[#22385c] bg-[#fbf7ee] shadow-sm">
-      <div className="flex items-center gap-3 border-b-2 border-[#22385c]/30 bg-[#efe6cf]/50 px-4 py-3">
+    <section className="overflow-hidden rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
+      <div className="flex items-center gap-3 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
         <div className="mr-auto min-w-0">
-          <h2 className="font-serif text-sm font-bold text-[#1b2a4a]">Mission chart — Goa Basin</h2>
-          <p className="truncate font-serif text-xs italic text-[#6b5d3f]">
+          <h2 className="font-mono text-xs font-bold text-[var(--color-ocean-text)]">MISSION CHART — GOA BASIN</h2>
+          <p className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ocean-muted)]">
             Every mark is a logged contact · click to inspect
           </p>
         </div>
-        <span className="hidden font-mono text-[10px] tracking-widest text-[#8a8574] md:inline">
+        <span className="hidden font-mono text-[10px] tracking-widest text-[var(--color-ocean-muted)] md:inline">
           MISSION OS-118
         </span>
-        <span className="border border-[#22385c]/30 bg-[#f4eddc] px-2 py-0.5 font-mono text-[10px] tabular-nums text-[#33415c]">
+        <span className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-2 py-0.5 font-mono text-[10px] tabular-nums text-[var(--color-ocean-sky)]">
           {clock}
         </span>
       </div>
@@ -89,19 +78,19 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
       <div className="relative">
         <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Mission chart">
           <defs>
-            <marker id="arrowInk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#22385c" />
+            <marker id="arrowInk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="rgba(255,255,255,0.4)" />
             </marker>
           </defs>
 
-          <rect width={W} height={H} fill="#efe6cf" />
+          <rect width={W} height={H} fill="#080E18" />
 
           {lats.map((lat) => {
             const p = proj(lat, LON_MIN);
             return (
               <g key={lat}>
-                <line x1={PAD} y1={p.y} x2={W - PAD} y2={p.y} stroke="#22385c" strokeOpacity="0.14" strokeWidth="1" />
-                <text x={6} y={p.y + 3} fontSize="9" fill="#6b5d3f" fontFamily="var(--font-geist-mono), monospace">
+                <line x1={PAD} y1={p.y} x2={W - PAD} y2={p.y} stroke="rgba(56,189,248,0.08)" strokeWidth="1" />
+                <text x={6} y={p.y + 3} fontSize="8" fill="rgba(56,189,248,0.4)" fontFamily="monospace">
                   {lat.toFixed(2)}°N
                 </text>
               </g>
@@ -111,45 +100,42 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
             const p = proj(LAT_MIN, lon);
             return (
               <g key={lon}>
-                <line x1={p.x} y1={PAD} x2={p.x} y2={H - PAD} stroke="#22385c" strokeOpacity="0.14" strokeWidth="1" />
-                <text x={p.x - 18} y={H - PAD + 14} fontSize="9" fill="#6b5d3f" fontFamily="var(--font-geist-mono), monospace">
+                <line x1={p.x} y1={PAD} x2={p.x} y2={H - PAD} stroke="rgba(56,189,248,0.08)" strokeWidth="1" />
+                <text x={p.x - 16} y={H - PAD + 12} fontSize="8" fill="rgba(56,189,248,0.4)" fontFamily="monospace">
                   {lon.toFixed(2)}°E
                 </text>
               </g>
             );
           })}
 
-          {/* coastline */}
-          <path d={`M${W},${H * 0.28} C ${W * 0.93},${H * 0.22} ${W * 0.88},${H * 0.12} ${W * 0.9},0 L ${W},0 Z`} fill="#e3d7ba" stroke="#22385c" strokeWidth="1.2" />
-          <text x={W - 62} y={26} fontSize="9" fill="#6b5d3f" fontFamily="var(--font-geist-mono), monospace">
+          <path
+            d={`M${W},${H * 0.28} C ${W * 0.93},${H * 0.22} ${W * 0.88},${H * 0.12} ${W * 0.9},0 L ${W},0 Z`}
+            fill="#0D1520"
+            stroke="rgba(56,189,248,0.2)"
+            strokeWidth="1"
+          />
+          <text x={W - 60} y={24} fontSize="8" fill="rgba(56,189,248,0.5)" fontFamily="monospace">
             GOA COAST
           </text>
 
-          {/* depth contours */}
-          <path d="M60,180 C 220,240 420,300 620,330 C 690,342 730,360 750,392" fill="none" stroke="#22385c" strokeOpacity="0.45" strokeWidth="1.2" strokeDasharray="6 6" />
-          <path d="M50,340 C 240,380 480,430 700,470 C 730,476 745,484 752,496" fill="none" stroke="#22385c" strokeOpacity="0.45" strokeWidth="1.2" strokeDasharray="6 6" />
-          <text x="66" y="172" fontSize="9" fontStyle="italic" fill="#6b5d3f" fontFamily="var(--font-geist-serif), Georgia, serif">
-            −40 m
-          </text>
-          <text x="56" y="332" fontSize="9" fontStyle="italic" fill="#6b5d3f" fontFamily="var(--font-geist-serif), Georgia, serif">
-            −80 m
-          </text>
+          <path d="M60,180 C 220,240 420,300 620,330 C 690,342 730,360 750,392" fill="none" stroke="rgba(56,189,248,0.15)" strokeWidth="1" strokeDasharray="6 6" />
+          <path d="M50,340 C 240,380 480,430 700,470 C 730,476 745,484 752,496" fill="none" stroke="rgba(56,189,248,0.15)" strokeWidth="1" strokeDasharray="6 6" />
+          <text x="66" y="172" fontSize="8" fill="rgba(56,189,248,0.35)" fontFamily="monospace">−40 m</text>
+          <text x="56" y="332" fontSize="8" fill="rgba(56,189,248,0.35)" fontFamily="monospace">−80 m</text>
 
-          {/* boat track */}
-          <path d={pathD} fill="none" stroke="#22385c" strokeWidth="2" strokeDasharray="8 5" markerEnd="url(#arrowInk)" />
+          <path d={pathD} fill="none" stroke="rgba(56,189,248,0.5)" strokeWidth="1.5" strokeDasharray="8 5" markerEnd="url(#arrowInk)" />
           {(() => {
             const s = trajectoryPts[0];
             return (
               <>
-                <circle cx={s.x} cy={s.y} r="4.5" fill="#fbf7ee" stroke="#22385c" strokeWidth="2" />
-                <text x={s.x - 44} y={s.y - 10} fontSize="11" fontStyle="italic" fill="#22385c" fontFamily="Georgia, serif">
+                <circle cx={s.x} cy={s.y} r="4" fill="#080E18" stroke="rgba(56,189,248,0.6)" strokeWidth="1.5" />
+                <text x={s.x - 50} y={s.y - 10} fontSize="9" fill="rgba(56,189,248,0.6)" fontFamily="monospace">
                   Launch · MSV Sagar-Dhwani
                 </text>
               </>
             );
           })()}
 
-          {/* contact marks */}
           {targets.map((t) => {
             const p = proj(t.lat, t.lon);
             const meta = SEVERITY_META[t.severity];
@@ -157,19 +143,19 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
             const flipLabel = p.x > W - 170;
             return (
               <g key={t.id} transform={`translate(${p.x},${p.y})`} onClick={() => onSelect(t.id)} className="cursor-pointer">
-                {isSel && <circle r="14" fill="none" stroke="#b03a2e" strokeWidth="1.5" className="pin-pulse" />}
-                <line x1="0" y1="4" x2="0" y2="16" stroke="#22385c" strokeWidth="1.2" />
-                <circle r={isSel ? 7 : 6} fill={meta.stroke} stroke="#fbf7ee" strokeWidth="1.8" />
-                <path d="M-2.4,0 H2.4 M0,-2.4 V2.4" stroke="#ffffff" strokeWidth="1.1" />
+                {isSel && <circle r="14" fill="none" stroke={meta.stroke} strokeWidth="1.5" className="pin-pulse" />}
+                <line x1="0" y1="4" x2="0" y2="16" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+                <circle r={isSel ? 6 : 5} fill={meta.stroke} stroke="#080E18" strokeWidth="1.5" />
+                <path d="M-2,0 H2 M0,-2 V2" stroke="#ffffff" strokeWidth="1" />
                 <text
-                  x={flipLabel ? -12 : 12}
-                  y="5"
-                  fontSize="11"
-                  fontStyle="italic"
+                  x={flipLabel ? -10 : 10}
+                  y="4"
+                  fontSize="9"
                   textAnchor={flipLabel ? "end" : "start"}
-                  fill={isSel ? "#b03a2e" : "#1b2a4a"}
-                  fontFamily="Georgia, serif"
-                  stroke="#efe6cf"
+                  fill={isSel ? meta.stroke : "rgba(255,255,255,0.7)"}
+                  fontFamily="monospace"
+                  fontWeight={isSel ? "bold" : "normal"}
+                  stroke="#080E18"
                   strokeWidth="3"
                   paintOrder="stroke"
                 >
@@ -179,30 +165,27 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
             );
           })}
 
-          {/* north arrow */}
-          <g transform={`translate(${W - 56},${H - 58})`}>
-            <circle r="20" fill="#fbf7ee" stroke="#22385c" strokeWidth="1.2" />
-            <path d="M0,-13 L4.5,5 L0,1.5 L-4.5,5 Z" fill="#22385c" />
-            <text y="-26" fontSize="11" fontStyle="italic" textAnchor="middle" fill="#22385c" fontFamily="Georgia, serif">N</text>
+          <g transform={`translate(${W - 52},${H - 56})`}>
+            <circle r="18" fill="rgba(8,14,24,0.8)" stroke="rgba(56,189,248,0.3)" strokeWidth="1" />
+            <path d="M0,-12 L4,4 L0,1 L-4,4 Z" fill="rgba(56,189,248,0.6)" />
+            <text y="-24" fontSize="9" textAnchor="middle" fill="rgba(56,189,248,0.6)" fontFamily="monospace" fontWeight="bold">N</text>
           </g>
-          {/* scale bar */}
-          <g transform={`translate(${PAD},${H - 24})`}>
-            <line x1="0" y1="0" x2="52" y2="0" stroke="#22385c" strokeWidth="1.5" />
-            <line x1="0" y1="-4" x2="0" y2="4" stroke="#22385c" strokeWidth="1.5" />
-            <line x1="52" y1="-4" x2="52" y2="4" stroke="#22385c" strokeWidth="1.5" />
-            <text x="60" y="4" fontSize="9" fill="#6b5d3f" fontFamily="var(--font-geist-mono), monospace">≈ 500 m</text>
+          <g transform={`translate(${PAD},${H - 22})`}>
+            <line x1="0" y1="0" x2="48" y2="0" stroke="rgba(56,189,248,0.4)" strokeWidth="1.2" />
+            <line x1="0" y1="-3" x2="0" y2="3" stroke="rgba(56,189,248,0.4)" strokeWidth="1.2" />
+            <line x1="48" y1="-3" x2="48" y2="3" stroke="rgba(56,189,248,0.4)" strokeWidth="1.2" />
+            <text x="56" y="3" fontSize="8" fill="rgba(56,189,248,0.4)" fontFamily="monospace">≈ 500 m</text>
           </g>
         </svg>
 
         <TechnicalGrid />
 
-        {/* Live AUV position — acoustic ping ripple */}
         {(() => {
           const auv = trajectoryPts[4];
           if (!auv) return null;
           return (
             <div
-              className="pointer-events-none absolute z-10 h-28 w-28 -translate-x-1/2 -translate-y-1/2"
+              className="pointer-events-none absolute z-10 h-24 w-24 -translate-x-1/2 -translate-y-1/2"
               style={{ left: `${(auv.x / W) * 100}%`, top: `${(auv.y / H) * 100}%` }}
             >
               <SonarPingRipple className="h-full w-full" />
@@ -210,16 +193,14 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
           );
         })()}
 
-        <div className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-sm border border-[#22385c]/30 bg-[#fbf7ee]/95 px-2.5 py-1 font-mono text-[9px] uppercase tracking-wide text-[#33415c] shadow-sm backdrop-blur">
-          <Navigation size={10} className="text-[#b03a2e]" /> Boat track · lawnmower sweep · 2 kn
+        <div className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-sm border border-[var(--color-ocean-border)] bg-[var(--color-ocean-slate)]/90 px-2 py-1 font-mono text-[9px] uppercase tracking-wide text-[var(--color-ocean-muted)] backdrop-blur">
+          <Navigation size={9} className="text-[var(--color-ocean-sky)]" /> Boat track · lawnmower sweep · 2 kn
         </div>
-
-        <CompassRose className="pointer-events-none absolute bottom-4 left-16 h-14 w-14 opacity-25 max-md:hidden" />
       </div>
 
-      <figcaption className="flex items-center justify-between border-t-2 border-[#22385c]/30 bg-[#efe6cf]/50 px-4 py-1.5">
-        <span className="font-serif text-xs italic text-[#33415c]">Fig. 1 — Survey area with plotted contacts, line L04</span>
-        <span className="font-mono text-[9px] uppercase tracking-widest text-[#8a8574]">Datum WGS-84</span>
+      <figcaption className="flex items-center justify-between border-t border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-1.5">
+        <span className="font-mono text-[10px] text-[var(--color-ocean-muted)]">Survey area with plotted contacts, line L04</span>
+        <span className="font-mono text-[9px] uppercase tracking-widest text-[var(--color-ocean-muted)]">Datum WGS-84</span>
       </figcaption>
     </section>
   );

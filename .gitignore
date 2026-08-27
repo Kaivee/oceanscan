@@ -30,7 +30,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 
 # vercel
@@ -40,5 +40,25 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local dev server log
+# auto-generated files
+AGENTS.md
+CLAUDE.md
+
+# dev server logs
 dev.log
+*.log
+
+venv/
+.venv/
+ml/venv/
+__pycache__/
+*.pt
+*.pth
+*.onnx
+runs/
+datasets/
+
+# ml raw data (large binaries)
+ml/data/
+ml/jobs/
+node_modules/

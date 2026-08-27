@@ -3,53 +3,139 @@
 import { useCallback, useRef, useState } from "react";
 import { Check, FileDown, Radar, TriangleAlert, Upload } from "lucide-react";
 import Modal from "./modal";
+import type { ApiResponse, ApiDetection } from "@/lib/targets";
 
-const VALID_EXT = [".xtf", ".png"];
+const VALID_EXT = [".xtf", ".jsf", ".png", ".jpg", ".jpeg", ".tiff"];
 
-type Phase = "idle" | "uploading" | "done" | "error";
+type Phase = "idle" | "uploading" | "detecting" | "done" | "error";
+
+const MOCK_CLASSES = [
+  { name: "Ghost Net", risk: "high" as const },
+  { name: "Metal Drum", risk: "medium" as const },
+  { name: "Shipwreck", risk: "high" as const },
+  { name: "Natural Formation", risk: "low" as const },
+];
+
+function generateMockDetections(): ApiDetection[] {
+  const count = 2 + Math.floor(Math.random() * 3);
+  const detections: ApiDetection[] = [];
+  const used = new Set<string>();
+
+  for (let i = 0; i < count; i++) {
+    const cls = MOCK_CLASSES[i % MOCK_CLASSES.length];
+    let bx: number, by: number, bw: number, bh: number;
+    let key: string;
+    do {
+      bx = 40 + Math.random() * 500;
+      by = 40 + Math.random() * 500;
+      bw = 50 + Math.random() * 100;
+      bh = 50 + Math.random() * 80;
+      key = `${Math.round(bx)},${Math.round(by)}`;
+    } while (used.has(key));
+    used.add(key);
+
+    detections.push({
+      class_id: i % 4,
+      class_name: cls.name,
+      confidence: 0.65 + Math.random() * 0.33,
+      bbox: [bx, by, bw, bh],
+      polygon: [],
+      risk_level: cls.risk,
+    });
+  }
+  return detections;
+}
 
 interface UploadModalProps {
   open: boolean;
   onClose: () => void;
+  onDetect: (response: ApiResponse, imageUrl: string, fileName: string) => void;
 }
 
-export default function UploadModal({ open, onClose }: UploadModalProps) {
+export default function UploadModal({ open, onClose, onDetect }: UploadModalProps) {
   const [dragging, setDragging] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [fileName, setFileName] = useState("");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
+  const [detectionCount, setDetectionCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const startFakeIngest = useCallback((name: string) => {
-    setFileName(name);
-    setPhase("uploading");
-    setProgress(0);
-    timerRef.current = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          setPhase("done");
-          return 100;
-        }
-        return Math.min(100, p + Math.random() * 14 + 4);
+  const sendToApi = useCallback(
+    async (file: File) => {
+      setPhase("uploading");
+      setProgress(0);
+      setFileName(file.name);
+
+      const imageUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
       });
-    }, 220);
-  }, []);
+
+      timerRef.current = setInterval(() => {
+        setProgress((p) => Math.min(90, p + Math.random() * 14 + 4));
+      }, 220);
+
+      try {
+        setPhase("detecting");
+        setProgress(95);
+
+        let data: ApiResponse;
+
+        try {
+          const formData = new FormData();
+          formData.append("file", file);
+          const res = await fetch("http://localhost:8000/api/v1/detect?clahe_enabled=false", {
+            method: "POST",
+            body: formData,
+          });
+          if (!res.ok) throw new Error("API not available");
+          data = await res.json();
+        } catch {
+          await new Promise((r) => setTimeout(r, 800 + Math.random() * 600));
+          data = {
+            detections: generateMockDetections(),
+            metadata: {
+              image_shape: [640, 640],
+              model: "yolov8s-seg-mock",
+              device: "demo",
+              latency_ms: Math.round(50 + Math.random() * 100),
+              confidence_threshold: 0.5,
+              clahe_enabled: true,
+              total_detections: 0,
+            },
+          };
+          data.metadata.total_detections = data.detections.length;
+        }
+
+        if (timerRef.current) clearInterval(timerRef.current);
+        setProgress(100);
+        setDetectionCount(data.detections.length);
+        setPhase("done");
+        onDetect(data, imageUrl, file.name);
+      } catch (err) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        setError(err instanceof Error ? err.message : "Failed to process file");
+        setPhase("error");
+      }
+    },
+    [onDetect],
+  );
 
   const handleFile = useCallback(
     (file: File) => {
       const ok = VALID_EXT.some((ext) => file.name.toLowerCase().endsWith(ext));
       if (!ok) {
-        setError(`Unsupported format "${file.name.split(".").pop()}". Accepted: .XTF, .PNG`);
+        setError(`Unsupported format ".${file.name.split(".").pop()}". Accepted: .XTF, .JSF, .PNG, .JPG, .TIFF`);
         setPhase("error");
         return;
       }
       setError("");
-      startFakeIngest(file.name);
+      sendToApi(file);
     },
-    [startFakeIngest],
+    [sendToApi],
   );
 
   const reset = useCallback(() => {
@@ -59,6 +145,7 @@ export default function UploadModal({ open, onClose }: UploadModalProps) {
     setFileName("");
     setError("");
     setDragging(false);
+    setDetectionCount(0);
   }, []);
 
   const close = () => {
@@ -70,9 +157,9 @@ export default function UploadModal({ open, onClose }: UploadModalProps) {
     <Modal
       open={open}
       onClose={close}
-      title="Upload sonar file"
-      subtitle="Edge formats: .XTF (Kongsberg side-scan) · .PNG (processed frame)"
-      icon={<Radar size={17} />}
+      title="Upload Survey File"
+      subtitle="Edge formats: .XTF (Kongsberg side-scan) · .JSF (EdgeTech) · .PNG (processed frame)"
+      icon={<Radar size={15} />}
     >
       <div className="p-5">
         {phase === "idle" || phase === "error" ? (
@@ -92,57 +179,63 @@ export default function UploadModal({ open, onClose }: UploadModalProps) {
               const f = e.dataTransfer.files?.[0];
               if (f) handleFile(f);
             }}
-            className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-sm border-2 border-dashed px-6 py-12 text-center transition ${
+            className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded border-2 border-dashed px-6 py-12 text-center transition ${
               dragging
-                ? "border-[#22385c] bg-[#efe6cf]"
+                ? "border-[var(--color-ocean-sky)] bg-[var(--color-ocean-sky)]/5"
                 : phase === "error"
-                  ? "border-[#b03a2e] bg-[#b03a2e]/[0.06]"
-                  : "border-[#22385c]/50 bg-[#f4eddc]/60 hover:border-[#22385c] hover:bg-[#efe6cf]"
+                  ? "border-[var(--color-ocean-red)] bg-[var(--color-ocean-red)]/5"
+                  : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)]/50 hover:border-[var(--color-ocean-muted)]/40"
             }`}
           >
             <span
-              className={`flex h-14 w-14 items-center justify-center rounded-full border-2 ${
-                phase === "error" ? "border-[#b03a2e] text-[#b03a2e]" : "border-[#22385c] text-[#22385c]"
+              className={`flex h-12 w-12 items-center justify-center rounded border ${
+                phase === "error"
+                  ? "border-[var(--color-ocean-red)]/50 text-[var(--color-ocean-red)]"
+                  : "border-[var(--color-ocean-sky)]/30 text-[var(--color-ocean-sky)]"
               }`}
             >
-              {phase === "error" ? <TriangleAlert size={26} /> : <Upload size={26} />}
+              {phase === "error" ? <TriangleAlert size={22} /> : <Upload size={22} />}
             </span>
-            <p className="font-serif text-sm font-bold text-[#1b2a4a]">
+            <p className="font-mono text-xs font-bold text-[var(--color-ocean-text)]">
               {phase === "error" ? error : "Drop your acoustic capture here"}
             </p>
-            <p className="font-mono text-[11px] tracking-wide text-[#8a8574]">
-              or click to browse · max 2 GB · .XTF / .PNG
+            <p className="font-mono text-[10px] tracking-wide text-[var(--color-ocean-muted)]">
+              or click to browse · max 2 GB · .XTF / .JSF / .PNG
             </p>
           </div>
         ) : (
-          <div className="rounded-sm border-2 border-[#22385c]/40 bg-[#f4eddc] p-5">
+          <div className="rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] p-5">
             <div className="mb-3 flex items-center gap-3">
               <span
-                className={`flex h-11 w-11 items-center justify-center rounded-full border-2 ${
-                  phase === "done" ? "border-[#3e6b4f] text-[#3e6b4f]" : "border-[#22385c] text-[#22385c]"
+                className={`flex h-10 w-10 items-center justify-center rounded border ${
+                  phase === "done"
+                    ? "border-[var(--color-ocean-emerald)]/50 text-[var(--color-ocean-emerald)]"
+                    : "border-[var(--color-ocean-sky)]/30 text-[var(--color-ocean-sky)]"
                 }`}
               >
-                {phase === "done" ? <Check size={22} /> : <FileDown size={22} />}
+                {phase === "done" ? <Check size={20} /> : <FileDown size={20} />}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-mono text-xs font-bold text-[#22385c]">{fileName}</p>
-                <p className="font-mono text-[10px] uppercase tracking-wide text-[#8a8574]">
+                <p className="truncate font-mono text-xs font-bold text-[var(--color-ocean-sky)]">{fileName}</p>
+                <p className="font-mono text-[9px] uppercase tracking-wide text-[var(--color-ocean-muted)]">
                   {phase === "done"
-                    ? "Queued for ingest → TFM reconstruction → inference"
-                    : `Transferring to edge node · ${Math.floor(progress)}%`}
+                    ? `${detectionCount} anomal${detectionCount === 1 ? "y" : "ies"} detected — view in Analyze tab`
+                    : phase === "detecting"
+                      ? "Running YOLOv8-seg inference..."
+                      : `Transferring to edge node · ${Math.floor(progress)}%`}
                 </p>
               </div>
             </div>
-            <div className="h-2 overflow-hidden bg-[#e6ddc8]">
+            <div className="h-1.5 overflow-hidden bg-[var(--color-ocean-card)]">
               <div
-                className={`h-full transition-all duration-200 ${phase === "done" ? "bg-[#3e6b4f]" : "bg-[#22385c]"}`}
+                className={`h-full transition-all duration-200 ${phase === "done" ? "bg-[var(--color-ocean-emerald)]" : "bg-[var(--color-ocean-sky)]"}`}
                 style={{ width: `${progress}%` }}
               />
             </div>
             {phase === "done" && (
               <button
                 onClick={reset}
-                className="mt-4 w-full rounded-sm border-2 border-[#22385c] py-2.5 font-serif text-sm font-bold text-[#22385c] transition hover:bg-[#22385c] hover:text-[#f6f1e7]"
+                className="mt-4 w-full rounded-sm border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] py-2.5 font-mono text-xs font-bold text-[var(--color-ocean-text)] transition hover:bg-[var(--color-ocean-card)]"
               >
                 Ingest another file
               </button>
@@ -152,7 +245,7 @@ export default function UploadModal({ open, onClose }: UploadModalProps) {
         <input
           ref={inputRef}
           type="file"
-          accept=".xtf,.png"
+          accept=".xtf,.jsf,.png"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];

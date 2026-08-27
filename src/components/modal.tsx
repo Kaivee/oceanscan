@@ -17,32 +17,32 @@ export default function Modal({ open, onClose, title, subtitle, icon, children, 
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#101c30]/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className={`relative flex max-h-[85vh] w-full flex-col overflow-hidden rounded-md border-2 border-[#22385c] bg-[#fbf7ee] shadow-2xl ${
+        className={`relative flex max-h-[85vh] w-full flex-col overflow-hidden rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] shadow-2xl ${
           wide ? "max-w-3xl" : "max-w-lg"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 border-b-2 border-[#22385c]/20 bg-[#efe6cf]/50 px-5 py-4">
+        <div className="flex items-center gap-3 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-5 py-4">
           {icon ? (
-            <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#22385c] text-[#22385c]">
+            <span className="flex h-8 w-8 items-center justify-center rounded border border-[var(--color-ocean-emerald)]/30 bg-[var(--color-ocean-emerald)]/10 text-[var(--color-ocean-emerald)]">
               {icon}
             </span>
           ) : null}
           <div className="min-w-0 flex-1">
-            <h2 className="truncate font-serif text-base font-bold text-[#1b2a4a]">{title}</h2>
+            <h2 className="truncate font-mono text-sm font-bold text-[var(--color-ocean-text)]">{title}</h2>
             {subtitle ? (
-              <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.14em] text-[#8a8574]">{subtitle}</p>
+              <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ocean-muted)]">{subtitle}</p>
             ) : null}
           </div>
           <button
             onClick={onClose}
-            className="rounded-sm p-1.5 text-[#6b5d3f] transition hover:bg-[#efe6cf] hover:text-[#b03a2e]"
+            className="rounded p-1.5 text-[var(--color-ocean-muted)] transition hover:bg-[var(--color-ocean-surface)] hover:text-[var(--color-ocean-red)]"
             aria-label="Close"
           >
             <X size={16} />

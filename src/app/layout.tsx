@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OceanScan AI | Autonomous Sonar Debris Pipeline",
+  title: "OceanScan AI // Hydrographic Debris Classifier",
   description:
-    "AI marine mission control — side-scan sonar debris detection, geospatial tracking and hazard retrieval planning.",
+    "Tactical marine hydrographic workstation — AI side-scan sonar debris detection, geospatial tracking and hazard retrieval dispatch.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
