@@ -332,3 +332,86 @@ export function downloadText(filename: string, text: string, mime: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+const SEV_LABEL: Record<Severity, string> = {
+  high: "HIGH",
+  medium: "MEDIUM",
+  low: "LOW",
+};
+
+export function printSurveySheet(
+  targets: SonarTarget[],
+  opts: { vessel: string; surveyId: string; sensor: string },
+) {
+  const rows = targets
+    .map(
+      (t) => `
+      <tr>
+        <td>${t.id}</td>
+        <td>${t.label} (${t.cls})</td>
+        <td>${(t.confidence * 100).toFixed(1)}%</td>
+        <td>${t.lat.toFixed(6)}°N</td>
+        <td>${t.lon.toFixed(6)}°E</td>
+        <td>${t.depthM} m</td>
+        <td class="sev sev-${t.severity}">${SEV_LABEL[t.severity]}</td>
+        <td>${t.dims.length.toFixed(2)} × ${t.dims.width.toFixed(2)} × ${t.dims.height.toFixed(2)} m</td>
+      </tr>`,
+    )
+    .join("");
+
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>OceanScan Survey Sheet</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', monospace; color: #0f172a; padding: 32px; font-size: 12px; }
+  header { border-bottom: 2px solid #1e293b; padding-bottom: 12px; margin-bottom: 20px; }
+  h1 { font-size: 20px; letter-spacing: 0.05em; }
+  .meta { display: flex; gap: 32px; margin-top: 8px; color: #475569; font-size: 11px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #cbd5e1; padding: 7px 9px; text-align: left; font-size: 11px; }
+  th { background: #f1f5f9; text-transform: uppercase; letter-spacing: 0.08em; font-size: 9px; }
+  .sev { font-weight: 700; }
+  .sev-high { color: #dc2626; }
+  .sev-medium { color: #d97706; }
+  .sev-low { color: #2563eb; }
+  .foot { margin-top: 24px; color: #64748b; font-size: 10px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>OceanScan AI — HAZARD FINDINGS SURVEY SHEET</h1>
+    <div class="meta">
+      <span>Vessel: <strong>${opts.vessel}</strong></span>
+      <span>Survey: <strong>${opts.surveyId}</strong></span>
+      <span>Sensor: <strong>${opts.sensor}</strong></span>
+      <span>Datum: <strong>WGS-84</strong></span>
+      <span>Generated: <strong>${new Date().toISOString()}</strong></span>
+    </div>
+  </header>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Class</th><th>Conf</th><th>Latitude</th>
+        <th>Longitude</th><th>Depth</th><th>Severity</th><th>Est. Dims (m)</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <p class="foot">
+    AI model v3.0.0 · TensorRT INT8 edge inference. High-severity contacts must be verified by ROV before recovery operations.
+  </p>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank", "width=900,height=700");
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => {
+    win.print();
+  }, 350);
+}

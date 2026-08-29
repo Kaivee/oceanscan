@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Compass, Image as ImageIcon, CircleCheck, CircleX, MousePointer2, Check, X, StickyNote } from "lucide-react";
 import TelemetryCard from "@/components/telemetry-card";
 import { SEVERITY_META, CLASS_COLORS, type SonarTarget, type ViewMode, type DetectionStatus } from "@/lib/targets";
 import { EmptyState } from "@/components/analyze-tab-empty";
+import SonarPreview from "@/components/sonar-preview";
+import AcousticIntensityProfile from "@/components/acoustic-intensity-profile";
 
 interface UploadedImage {
   name: string;
@@ -45,12 +47,15 @@ function BoundingBoxOverlay({
         const clsColor = CLASS_COLORS[t.label] ?? { stroke: "#6b7280", fill: "rgba(107,114,128,0.12)" };
         const isSelected = t.id === selectedId;
         const status = t.detectionStatus;
+        // During slew-to-cue focus, dim every non-selected box so there is no
+        // ambiguity about which target the viewport has slewed onto.
+        const dimmed = selectedId != null && !isSelected;
         return (
           <div
             key={t.id}
             onClick={(e) => { e.stopPropagation(); onBoxClick(t.id); }}
             onPointerDown={(e) => e.stopPropagation()}
-            className="absolute cursor-pointer"
+            className={`absolute cursor-pointer transition-opacity duration-300 ${dimmed ? "opacity-25" : "opacity-100"}`}
             style={{
               left: `${t.box.x}%`,
               top: `${t.box.y}%`,
@@ -62,22 +67,26 @@ function BoundingBoxOverlay({
               className="absolute inset-0 rounded-sm transition-all"
               style={{
                 borderColor: status === "false_positive" ? "#6B7280" : clsColor.stroke,
-                backgroundColor: status === "false_positive" ? "rgba(107,114,128,0.1)" : clsColor.fill,
-                opacity: status === "false_positive" ? 0.4 : 0.9,
+                // Max 8–10% fill so the underlying acoustic texture/shadow stays visible
+                backgroundColor: status === "false_positive" ? "rgba(107,114,128,0.05)" : "rgba(42,217,248,0.06)",
                 borderStyle: isSelected ? "solid" : "dashed",
-                borderWidth: isSelected ? "2px" : "1px",
-                boxShadow: isSelected ? `0 0 8px ${clsColor.stroke}66` : "none",
+                borderWidth: "1.5px",
+                boxShadow: isSelected
+                  ? `0 0 0 1px ${clsColor.stroke}66, 0 0 12px ${clsColor.stroke}66`
+                  : `0 0 6px ${clsColor.stroke}33`,
               }}
             />
-            <div
-              className="absolute -top-5 left-0 whitespace-nowrap font-mono text-[10px] font-bold rounded-sm px-1"
-              style={{
-                color: status === "false_positive" ? "#9CA3AF" : clsColor.stroke,
-                backgroundColor: "rgba(6,11,18,0.8)",
-              }}
-            >
-              {t.label} [{Math.round(t.confidence * 100)}%]{status === "confirmed" ? " ✓" : status === "false_positive" ? " ✗" : ""}
-            </div>
+            {!dimmed && (
+              <div
+                className="absolute -top-5 left-0 whitespace-nowrap font-mono text-[10px] font-bold rounded-sm px-1"
+                style={{
+                  color: status === "false_positive" ? "#9CA3AF" : clsColor.stroke,
+                  backgroundColor: "rgba(6,11,18,0.8)",
+                }}
+              >
+                {t.label} [{Math.round(t.confidence * 100)}%]{status === "confirmed" ? " ✓" : status === "false_positive" ? " ✗" : ""}
+              </div>
+            )}
           </div>
         );
       })}
@@ -102,12 +111,41 @@ export default function AnalyzeTab({
   const [isDragging, setIsDragging] = useState(false);
   const [noteInput, setNoteInput] = useState("");
   const noteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ x: number | null; y: number | null }>({ x: null, y: null });
+  const [verifyPulseId, setVerifyPulseId] = useState<string | null>(null);
+  const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Zoomed-in slew target. Only set by an explicit click (box / register row),
+  // never by selection alone, so the viewport always loads zoomed-out.
+  const [focusId, setFocusId] = useState<string | null>(null);
 
   const hasUploads = uploadedImages.length > 0;
   const displayTargets = selectedImageUrl
     ? targets.filter((t) => t.imageUrl === selectedImageUrl)
     : targets;
-  const selectedTarget = targets.find((t) => t.id === selectedId);
+  const selectedTarget = displayTargets.find((t) => t.id === selectedId);
+
+  // Slew-to-cue: when the operator CLICKS a target (box or register row), centre
+  // + zoom the viewport onto its box. Passing selection alone (from upload/scan)
+  // does NOT zoom — the viewport always loads zoomed-out until the user clicks.
+  // ox/oy are the numeric center in image % (0..100); the % strings are derived
+  // only for CSS. The numeric values are used to invert the transform so hover
+  // coordinates can be reported back in image space. Memoised so the hover
+  // useCallback dependency stays stable.
+  const focusTarget = displayTargets.find((t) => t.id === focusId) ?? null;
+  const slew = useMemo(
+    () =>
+      focusTarget
+        ? {
+            id: focusTarget.id,
+            ox: focusTarget.box.x + focusTarget.box.w / 2,
+            oy: focusTarget.box.y + focusTarget.box.h / 2,
+            oxPct: `${focusTarget.box.x + focusTarget.box.w / 2}%`,
+            oyPct: `${focusTarget.box.y + focusTarget.box.h / 2}%`,
+            scale: 1.5,
+          }
+        : null,
+    [focusTarget],
+  );
 
   const confirmedCount = displayTargets.filter((t) => t.detectionStatus === "confirmed").length;
   const falsePositiveCount = displayTargets.filter((t) => t.detectionStatus === "false_positive").length;
@@ -148,11 +186,40 @@ export default function AnalyzeTab({
 
   const handleBoxClick = useCallback((id: string) => {
     onSelect(id === selectedId ? null : id);
-  }, [onSelect, selectedId]);
+    setFocusId(id === focusId ? null : id);
+  }, [onSelect, selectedId, focusId]);
 
   const handleDeselect = useCallback(() => {
     onSelect(null);
+    setFocusId(null);
   }, [onSelect]);
+
+  // Report the cursor as IMAGE-space percent (0..100) so it lines up with the
+  // target boxes / intensity profile even when the viewport is zoomed. Under a
+  // slew transform (scale about image center ox,oy), a viewport fraction v maps
+  // back to image fraction as ox + (v - ox)/scale.
+  const handleViewportHover = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    let vx = ((e.clientX - rect.left) / rect.width) * 100;
+    let vy = ((e.clientY - rect.top) / rect.height) * 100;
+    if (slew) {
+      vx = slew.ox + (vx - slew.ox) / slew.scale;
+      vy = slew.oy + (vy - slew.oy) / slew.scale;
+    }
+    setHoverPos({ x: Math.max(0, Math.min(100, vx)), y: Math.max(0, Math.min(100, vy)) });
+  }, [slew]);
+
+  const handleViewportLeave = useCallback(() => setHoverPos({ x: null, y: null }), []);
+
+  const handleConfirm = useCallback(
+    (id: string) => {
+      onStatusChange(id, "confirmed");
+      setVerifyPulseId(id);
+      if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
+      verifyTimerRef.current = setTimeout(() => setVerifyPulseId(null), 650);
+    },
+    [onStatusChange],
+  );
 
   const handleSplitDrag = useCallback(
     (e: React.MouseEvent | React.TouchEvent) => {
@@ -242,8 +309,8 @@ export default function AnalyzeTab({
                       onClick={() => setViewMode(m.key)}
                       className={`px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider transition ${
                         viewMode === m.key
-                          ? "bg-emerald-600/25 text-emerald-400"
-                          : "text-[var(--color-ocean-muted)] hover:text-[var(--color-ocean-text)]"
+                          ? "bg-[#3709A5] text-white"
+                          : "text-[#6B6280] hover:text-[#030507]"
                       }`}
                     >
                       {m.label}
@@ -256,14 +323,33 @@ export default function AnalyzeTab({
             <div
               ref={containerRef}
               className="relative h-[380px] select-none overflow-hidden bg-[#060B12] sm:h-[440px]"
-              onMouseMove={handleSplitMove}
+              onMouseMove={(e) => {
+                handleSplitMove(e);
+                handleViewportHover(e);
+              }}
               onMouseUp={handleSplitUp}
-              onMouseLeave={handleSplitUp}
+              onMouseLeave={() => {
+                handleSplitUp();
+                handleViewportLeave();
+              }}
               onTouchMove={handleSplitMove}
               onTouchEnd={handleSplitUp}
             >
               {selectedImageUrl ? (
-                <>
+                <div
+                  key={slew?.id ?? "nofocus"}
+                  className={`absolute inset-0 ${slew ? "slew-focus" : ""}`}
+                  style={
+                    slew
+                      ? {
+                          transform: `scale(${slew.scale})`,
+                          transformOrigin: `${slew.oxPct} ${slew.oyPct}`,
+                          "--slew-ox": slew.oxPct,
+                          "--slew-oy": slew.oyPct,
+                        } as React.CSSProperties
+                      : undefined
+                  }
+                >
                   {viewMode === "compare" ? (
                     <>
                       <img
@@ -277,22 +363,6 @@ export default function AnalyzeTab({
                       >
                         <BoundingBoxOverlay targets={displayTargets} selectedId={selectedId} onBoxClick={handleBoxClick} onDeselect={handleDeselect} />
                       </div>
-
-                      <div
-                        className="absolute top-0 z-20 flex h-full w-8 -translate-x-1/2 cursor-col-resize flex-col items-center"
-                        style={{ left: `${splitPos}%` }}
-                        onMouseDown={handleSplitDown}
-                        onTouchStart={handleSplitDown}
-                      >
-                        <div className="h-full w-0.5 bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
-                        <div className="absolute top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-sky-400/60 bg-[var(--color-ocean-card)]/95 shadow-lg">
-                          <MousePointer2 size={13} className="text-sky-400 -rotate-45" />
-                        </div>
-                      </div>
-
-                      <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-sm bg-[var(--color-ocean-slate)]/90 px-2 py-1 font-mono text-[9px] tracking-wider text-[var(--color-ocean-muted)]">
-                        DRAG TO COMPARE · RAW ← → AI
-                      </div>
                     </>
                   ) : (
                     <>
@@ -304,28 +374,67 @@ export default function AnalyzeTab({
                       {viewMode === "boxes" && (
                         <BoundingBoxOverlay targets={displayTargets} selectedId={selectedId} onBoxClick={handleBoxClick} onDeselect={handleDeselect} />
                       )}
-                      <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-sm bg-[var(--color-ocean-slate)]/90 px-2 py-1 font-mono text-[9px] tracking-wider text-[var(--color-ocean-muted)]">
-                        {viewMode === "raw" ? "UPLOADED IMAGE" : "CLICK BOX TO INSPECT"}
-                      </div>
                     </>
                   )}
-                </>
+                </div>
               ) : (
-                <div className="absolute inset-0 grid place-items-center bg-[var(--color-ocean-slate)]/80 p-4 backdrop-blur-[2px]">
-                  <div className="max-w-sm rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]/95 p-6 text-center glow-border">
-                    <span className="mx-auto flex h-11 w-11 items-center justify-center rounded border border-[var(--color-ocean-sky)]/30 bg-[var(--color-ocean-sky)]/10 text-[var(--color-ocean-sky)]">
-                      <ImageIcon size={22} />
-                    </span>
-                    <h3 className="mt-3 font-mono text-sm font-bold text-[var(--color-ocean-text)]">No image selected</h3>
-                    <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-[var(--color-ocean-muted)]">
-                      Select an uploaded image from the list to view detections.
-                    </p>
+                <>
+                  <SonarPreview opacity={0.3} label="IDLE · SELECT A SURVEY FRAME TO ANALYSE" />
+                  <div className="absolute inset-0 grid place-items-center bg-[var(--color-ocean-slate)]/40 p-4">
+                    <div className="max-w-sm rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]/90 p-6 text-center glow-border">
+                      <span className="mx-auto flex h-11 w-11 items-center justify-center rounded border border-[var(--color-ocean-sky)]/30 bg-[var(--color-ocean-sky)]/10 text-[var(--color-ocean-sky)]">
+                        <ImageIcon size={22} />
+                      </span>
+                      <h3 className="mt-3 font-mono text-sm font-bold text-[var(--color-ocean-text)]">No image selected</h3>
+                      <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-[var(--color-ocean-muted)]">
+                        Select an uploaded image from the list to view detections.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Dim surrounding non-target seabed when a target is in focus (slew-to-cue).
+                  Radial cutout keeps the ROI + selected box bright, dims the rest. */}
+              {slew && (
+                <div
+                  className="slew-dim pointer-events-none absolute inset-0"
+                  style={{
+                    background: `radial-gradient(circle at ${slew.oxPct} ${slew.oyPct}, transparent 0%, transparent 24%, rgba(2,4,8,0.66) 52%, rgba(2,4,8,0.86) 100%)`,
+                  }}
+                />
+              )}
+
+              {/* Legend / mode labels stay above the slew layer */}
+              {viewMode !== "compare" && (
+                <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-sm bg-[var(--color-ocean-slate)]/90 px-2 py-1 font-mono text-[9px] tracking-wider text-[var(--color-ocean-muted)]">
+                  {viewMode === "raw" ? "UPLOADED IMAGE" : "CLICK BOX TO INSPECT"}
+                </div>
+              )}
+              {viewMode === "compare" && (
+                <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-sm bg-[var(--color-ocean-slate)]/90 px-2 py-1 font-mono text-[9px] tracking-wider text-[var(--color-ocean-muted)]">
+                  DRAG TO COMPARE · RAW ← → AI
+                </div>
+              )}
+
+              {viewMode === "compare" && (
+                <div
+                  className="absolute top-0 z-20 flex h-full w-8 -translate-x-1/2 cursor-col-resize flex-col items-center"
+                  style={{ left: `${splitPos}%` }}
+                  onMouseDown={handleSplitDown}
+                  onTouchStart={handleSplitDown}
+                >
+                  <div className="h-full w-0.5 bg-[#2AD9F8] shadow-[0_0_8px_rgba(42,217,248,0.6)]" />
+                  <div className="absolute top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-[#2AD9F8]/60 bg-[var(--color-ocean-card)]/95 shadow-lg">
+                    <MousePointer2 size={13} className="text-[#2AD9F8] -rotate-45" />
                   </div>
                 </div>
               )}
 
               <div className="scanlines pointer-events-none absolute inset-0" />
             </div>
+
+            <AcousticIntensityProfile hover={hoverPos} targets={displayTargets} />
 
             <div className="flex items-center justify-between border-t border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-1.5">
               <span className="font-mono text-[9px] text-[var(--color-ocean-muted)]">
@@ -358,7 +467,10 @@ export default function AnalyzeTab({
                   return (
                     <li key={img.url}>
                       <button
-                        onClick={() => onSelectImage(img.url)}
+                        onClick={() => {
+                          setFocusId(null);
+                          onSelectImage(img.url);
+                        }}
                         className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                           isSelected ? "bg-[var(--color-ocean-surface)]" : "hover:bg-[var(--color-ocean-surface)]/50"
                         }`}
@@ -400,8 +512,8 @@ export default function AnalyzeTab({
               <div className="p-4 space-y-3 max-h-[300px] overflow-y-auto">
                 <div className="flex gap-2">
                   <button
-                    onClick={() => onStatusChange(selectedTarget.id, "confirmed")}
-                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-sm border py-2 font-mono text-[10px] font-bold uppercase tracking-wider transition ${
+                    onClick={() => handleConfirm(selectedTarget.id)}
+                    className={`${verifyPulseId === selectedTarget.id ? "verify-pulse" : ""} flex flex-1 items-center justify-center gap-1.5 rounded-sm border py-2 font-mono text-[10px] font-bold uppercase tracking-wider transition ${
                       selectedTarget.detectionStatus === "confirmed"
                         ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-400"
                         : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[var(--color-ocean-muted)] hover:bg-[var(--color-ocean-card)]"
@@ -475,7 +587,10 @@ export default function AnalyzeTab({
                 return (
                   <li key={t.id}>
                     <button
-                      onClick={() => onSelect(isSel ? null : t.id)}
+                      onClick={() => {
+                        onSelect(isSel ? null : t.id);
+                        setFocusId(isSel ? null : t.id);
+                      }}
                       className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                         isSel ? "bg-[var(--color-ocean-surface)]" : "hover:bg-[var(--color-ocean-surface)]/50"
                       }`}

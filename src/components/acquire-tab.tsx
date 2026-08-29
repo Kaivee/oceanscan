@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { SEVERITY_META, TARGETS, type SonarTarget } from "@/lib/targets";
 import { NumberTicker } from "@/components/marine-ui";
+import SonarPreview from "@/components/sonar-preview";
 import type { PendingUpload } from "@/app/page";
 
 const CANVAS_W = 1200;
@@ -154,6 +155,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
   const [confidenceFilter, setConfidenceFilter] = useState(50);
   const [claheEnabled, setClaheEnabled] = useState(true);
   const [loaded, setLoaded] = useState(true);
+  const [logSel, setLogSel] = useState<string | null>(null);
   const logRef = useRef<HTMLUListElement>(null);
   const currentUploadRef = useRef<string | null>(null);
 
@@ -336,7 +338,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
               className="w-20"
               style={{ "--fill": `${((confidenceFilter - 50) / 49) * 100}%` } as React.CSSProperties}
             />
-            <span className="w-9 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-1.5 py-0.5 text-center font-mono text-[10px] font-bold tabular-nums text-[var(--color-ocean-sky)]">
+            <span className="w-9 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-1.5 py-0.5 text-center font-mono text-[10px] font-bold tabular-nums text-[#3709A5]">
               {confidenceFilter}%
             </span>
           </div>
@@ -346,8 +348,8 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
               onClick={() => setClaheEnabled(!claheEnabled)}
               className={`rounded-sm px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider transition ${
                 claheEnabled
-                  ? "bg-emerald-600/25 text-emerald-400"
-                  : "bg-[var(--color-ocean-surface)] text-[var(--color-ocean-muted)]"
+                  ? "bg-[#3709A5] text-white"
+                  : "bg-[var(--color-ocean-surface)] text-[#6B6280]"
               }`}
             >
               CLAHE {claheEnabled ? "ON" : "OFF"}
@@ -365,7 +367,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
             <button
               onClick={startScan}
               disabled={running}
-              className="rounded-sm bg-emerald-600 px-3 py-1.5 font-mono text-[11px] font-bold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-sm bg-[#3709A5] px-3 py-1.5 font-mono text-[11px] font-bold text-white transition hover:bg-[#4a12c9] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {running ? `SCANNING ${progress}%` : (
                 <span className="inline-flex items-center gap-1.5">
@@ -382,6 +384,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
           onMouseLeave={() => setCursorPos(null)}
         >
           <canvas ref={canvasRef} width={CANVAS_W} height={CANVAS_H} className="absolute inset-0 h-full w-full" />
+          {!running && !done && <SonarPreview opacity={0.45} />}
           <div className="scanlines pointer-events-none absolute inset-0" />
 
           {sortedBySweep.map((t) => {
@@ -418,8 +421,8 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
           })}
 
           {!running && !done && (
-            <div className="absolute inset-0 grid place-items-center bg-[var(--color-ocean-slate)]/80 p-4 backdrop-blur-[2px]">
-              <div className="max-w-sm rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]/95 p-6 text-center glow-border">
+            <div className="absolute inset-0 grid place-items-center bg-[var(--color-ocean-slate)]/55 p-4 backdrop-blur-[1px]">
+              <div className="max-w-sm rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]/90 p-6 text-center glow-border">
                 <span className="mx-auto flex h-11 w-11 items-center justify-center rounded border border-[var(--color-ocean-sky)]/30 bg-[var(--color-ocean-sky)]/10 text-[var(--color-ocean-sky)]">
                   <ScanLine size={22} />
                 </span>
@@ -434,7 +437,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
                 {!pendingUpload && (
                   <button
                     onClick={startScan}
-                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-emerald-600 px-4 py-2.5 font-mono text-xs font-bold text-white transition hover:bg-emerald-500"
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-[#3709A5] px-4 py-2.5 font-mono text-xs font-bold text-white transition hover:bg-[#4a12c9]"
                   >
                     <Radar size={14} /> START SCAN
                   </button>
@@ -505,7 +508,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
               </p>
               <button
                 onClick={onGoAnalyze}
-                className="mt-2.5 inline-flex w-full items-center justify-center gap-1.5 rounded-sm bg-emerald-600 py-2 font-mono text-xs font-bold text-white transition hover:bg-emerald-500"
+                className="mt-2.5 inline-flex w-full items-center justify-center gap-1.5 rounded-sm bg-[#3709A5] py-2 font-mono text-xs font-bold text-white transition hover:bg-[#4a12c9]"
               >
                 Review findings <ArrowRight size={13} />
               </button>
@@ -532,15 +535,24 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
             {log.map((e) => (
               <li
                 key={e.key}
-                className="fade-up flex items-center gap-2 border-b border-[var(--color-ocean-border)] px-3 py-2 font-mono text-[10px] last:border-b-0"
+                className={`fade-up border-b border-[var(--color-ocean-border)] last:border-b-0 ${logSel === e.target.id ? "bg-[var(--color-ocean-surface)]" : ""}`}
               >
-                <span className="tabular-nums text-[var(--color-ocean-muted)]">{e.time}</span>
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: SEVERITY_META[e.target.severity].stroke }} />
-                <span className="font-bold text-[var(--color-ocean-sky)]">{e.target.id}</span>
-                <span className="truncate text-[var(--color-ocean-text)]">{e.target.label}</span>
-                <span className="ml-auto shrink-0 font-semibold tabular-nums text-[var(--color-ocean-emerald)]">
-                  {Math.round(e.target.confidence * 100)}%
-                </span>
+                <button
+                  onClick={() => {
+                    setLogSel(e.target.id);
+                    onReveal(e.target.id);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[10px] transition-colors hover:bg-[var(--color-ocean-surface)]"
+                  title="Slew viewport to target"
+                >
+                  <span className="tabular-nums text-[var(--color-ocean-muted)]">{e.time}</span>
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: SEVERITY_META[e.target.severity].stroke }} />
+                  <span className="font-bold text-[#3709A5]">{e.target.id}</span>
+                  <span className="truncate text-[var(--color-ocean-text)]">{e.target.label}</span>
+                  <span className="ml-auto shrink-0 font-semibold tabular-nums text-[var(--color-ocean-emerald)]">
+                    {Math.round(e.target.confidence * 100)}%
+                  </span>
+                </button>
               </li>
             ))}
           </ul>
@@ -559,7 +571,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
               { icon: <Cpu size={13} />, text: "TensorRT INT8 classifier flags hard acoustic returns" },
             ]).map((step, i) => (
               <li key={i} className="flex items-start gap-2 text-[11px] leading-relaxed text-[var(--color-ocean-muted)]">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-[var(--color-ocean-sky)]/30 bg-[var(--color-ocean-sky)]/10 font-mono text-[9px] font-bold text-[var(--color-ocean-sky)]">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-[var(--color-ocean-sky)]/30 bg-[var(--color-ocean-sky)]/10 font-mono text-[9px] font-bold text-[#3709A5]">
                   {i + 1}
                 </span>
                 <span className="pt-0.5">{step.text}</span>

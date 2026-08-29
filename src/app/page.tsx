@@ -6,6 +6,7 @@ import AcquireTab from "@/components/acquire-tab";
 import AnalyzeTab from "@/components/analyze-tab";
 import ReportTab from "@/components/report-tab";
 import UploadModal from "@/components/upload-modal";
+import LaunchScreen from "@/components/launch-screen";
 import { GeojsonModal, RetrievalModal } from "@/components/export-modals";
 import { TARGETS, apiDetectionToTarget, type SonarTarget, type ApiResponse, type DetectionStatus } from "@/lib/targets";
 import type { TabKey } from "@/components/tab-bar";
@@ -19,6 +20,7 @@ export interface PendingUpload {
 
 export default function Home() {
   const [tab, setTab] = useState<TabKey>("acquire");
+  const [activeSurvey, setActiveSurvey] = useState(false);
   const [revealedIds, setRevealedIds] = useState<string[]>([]);
   const [scanDone, setScanDone] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -29,6 +31,7 @@ export default function Home() {
   const [uploadedImages, setUploadedImages] = useState<Array<{ name: string; url: string; targetCount: number }>>([]);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null);
+  const [launchFile, setLaunchFile] = useState<File | null>(null);
 
   const [detectionNotes, setDetectionNotes] = useState<Record<string, string>>({});
   const [detectionStatus, setDetectionStatus] = useState<Record<string, DetectionStatus>>({});
@@ -52,6 +55,7 @@ export default function Home() {
     setSelectedImageUrl(imageUrl);
     setPendingUpload({ imageUrl, fileName, response, targets: newTargets });
     setShowUpload(false);
+    setActiveSurvey(true);
     setTab("acquire");
     setScanDone(false);
   }, [apiTargets.length]);
@@ -69,6 +73,17 @@ export default function Home() {
     setRevealedIds([]);
     setScanDone(false);
     setSelectedId(null);
+  };
+
+  // Return to the Mission Launch screen and clear the active survey context.
+  const handleNewMission = () => {
+    handleReset();
+    setPendingUpload(null);
+    setSelectedImageUrl(null);
+    setUploadedImages([]);
+    setApiTargets([]);
+    setTab("acquire");
+    setActiveSurvey(false);
   };
 
   const handleTabChange = useCallback((newTab: TabKey) => {
@@ -89,10 +104,33 @@ export default function Home() {
     detectionStatus: detectionStatus[t.id] ?? "pending" as DetectionStatus,
   }));
 
+  if (!activeSurvey) {
+    return (
+      <>
+        <LaunchScreen
+          onFileDetect={(f) => {
+            setLaunchFile(f);
+            setShowUpload(true);
+          }}
+        />
+        <UploadModal
+          open={showUpload}
+          onClose={() => {
+            setShowUpload(false);
+            setLaunchFile(null);
+          }}
+          onDetect={handleDetect}
+          initialFile={launchFile}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <TopBar
         onUpload={() => setShowUpload(true)}
+        onNewMission={handleNewMission}
         activeTab={tab}
         onTabChange={handleTabChange}
         scanDone={scanDone}

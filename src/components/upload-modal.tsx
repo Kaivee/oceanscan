@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, FileDown, Radar, TriangleAlert, Upload } from "lucide-react";
 import Modal from "./modal";
 import type { ApiResponse, ApiDetection } from "@/lib/targets";
@@ -50,9 +50,10 @@ interface UploadModalProps {
   open: boolean;
   onClose: () => void;
   onDetect: (response: ApiResponse, imageUrl: string, fileName: string) => void;
+  initialFile?: File | null;
 }
 
-export default function UploadModal({ open, onClose, onDetect }: UploadModalProps) {
+export default function UploadModal({ open, onClose, onDetect, initialFile }: UploadModalProps) {
   const [dragging, setDragging] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [fileName, setFileName] = useState("");
@@ -152,6 +153,16 @@ export default function UploadModal({ open, onClose, onDetect }: UploadModalProp
     reset();
     onClose();
   };
+
+  // If a file was already selected on the Launch screen, ingest it immediately
+  // so the user doesn't have to pick the file a second time inside the modal.
+  useEffect(() => {
+    if (!open || !initialFile) return;
+    const f = initialFile;
+    const timer = setTimeout(() => handleFile(f), 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialFile]);
 
   return (
     <Modal

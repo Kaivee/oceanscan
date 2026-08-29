@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Braces, FileDown, Route, Table, Timer, TriangleAlert } from "lucide-react";
+import { Braces, Check, FileDown, FileText, Route, Table } from "lucide-react";
 import { EmptyState } from "@/components/analyze-tab-empty";
 import { NumberTicker } from "@/components/marine-ui";
-import { downloadText, toCsv, type SonarTarget, type DetectionStatus } from "@/lib/targets";
+import SonarCropThumb from "@/components/sonar-crop-thumb";
+import { downloadText, printSurveySheet, toCsv, type SonarTarget, type DetectionStatus } from "@/lib/targets";
 
 interface ReportTabProps {
   targets: (SonarTarget & { detectionStatus: DetectionStatus })[];
@@ -122,11 +123,20 @@ export default function ReportTab({
 
           <div className="flex flex-wrap items-center gap-1.5">
             <button
+              onClick={() =>
+                printSurveySheet(targets, { vessel, surveyId, sensor })
+              }
+              title="Open a printable survey sheet (save as PDF)"
+              className="inline-flex items-center gap-1.5 rounded-sm bg-[#3709A5] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white transition hover:bg-[#4a12c9]"
+            >
+              <FileText size={12} /> Download PDF Survey Sheet
+            </button>
+            <button
               onClick={onExportGeojson}
               title="Download the findings as a GeoJSON FeatureCollection"
-              className="inline-flex items-center gap-1.5 rounded-sm bg-emerald-600 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white transition hover:bg-emerald-500"
+              className="inline-flex items-center gap-1.5 rounded-sm border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[var(--color-ocean-text)] transition hover:bg-[var(--color-ocean-card)]"
             >
-              <Braces size={12} /> Export GeoJSON
+              <Braces size={12} /> Export GeoJSON Waypoints
             </button>
             <button
               onClick={() =>
@@ -151,7 +161,7 @@ export default function ReportTab({
           <table className="w-full font-mono text-[10px]">
             <thead>
               <tr className="border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[var(--color-ocean-muted)] uppercase tracking-wider">
-                <th className="px-4 py-2 text-left">ID</th>
+                <th className="px-4 py-2 text-left">Target</th>
                 <th className="px-4 py-2 text-left">Class</th>
                 <th className="px-4 py-2 text-left">Conf</th>
                 <th className="px-4 py-2 text-left">Lat</th>
@@ -170,7 +180,7 @@ export default function ReportTab({
                   pending: "text-[var(--color-ocean-muted)]",
                 };
                 const statusLabels: Record<DetectionStatus, string> = {
-                  confirmed: "Confirmed",
+                  confirmed: "VERIFIED // NAVAL OP",
                   false_positive: "False +",
                   pending: "Pending",
                 };
@@ -184,7 +194,17 @@ export default function ReportTab({
                         : "hover:bg-[var(--color-ocean-surface)]/50"
                     }`}
                   >
-                    <td className="px-4 py-2 text-[var(--color-ocean-sky)]">{t.id}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-2.5">
+                        <SonarCropThumb target={t} size={48} />
+                        <div className="leading-tight">
+                          <span className="block font-mono text-[10px] font-bold text-[var(--color-ocean-sky)]">{t.id}</span>
+                          <span className="block font-mono text-[8px] tabular-nums text-[var(--color-ocean-muted)]">
+                            {t.lat.toFixed(4)}°N · {t.lon.toFixed(4)}°E
+                          </span>
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-4 py-2 text-[var(--color-ocean-text)]">{t.label}</td>
                     <td className="px-4 py-2 tabular-nums text-[var(--color-ocean-text)]">{Math.round(t.confidence * 100)}%</td>
                     <td className="px-4 py-2 tabular-nums text-[var(--color-ocean-text)]">{t.lat.toFixed(4)}</td>
@@ -194,15 +214,18 @@ export default function ReportTab({
                       <span
                         className="rounded-sm px-1.5 py-0.5 text-[9px] font-bold"
                         style={{
-                          backgroundColor: t.severity === "high" ? "rgba(239,68,68,0.15)" : t.severity === "medium" ? "rgba(245,158,11,0.15)" : "rgba(59,130,246,0.15)",
-                          color: t.severity === "high" ? "#EF4444" : t.severity === "medium" ? "#F59E0B" : "#3B82F6",
+                          backgroundColor: t.severity === "high" ? "rgba(239,68,68,0.15)" : t.severity === "medium" ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.15)",
+                          color: t.severity === "high" ? "#EF4444" : t.severity === "medium" ? "#F59E0B" : "#10B981",
                         }}
                       >
                         {t.severity.toUpperCase()}
                       </span>
                     </td>
                     <td className={`px-4 py-2 font-bold ${statusColors[t.detectionStatus]}`}>
-                      {statusLabels[t.detectionStatus]}
+                      <span className="flex items-center gap-1.5">
+                        {t.detectionStatus === "confirmed" && <Check size={11} strokeWidth={3} className="text-emerald-400" />}
+                        {statusLabels[t.detectionStatus]}
+                      </span>
                     </td>
                     <td className="max-w-[200px] truncate px-4 py-2 text-[var(--color-ocean-muted)]">
                       {t.note || "—"}
@@ -228,10 +251,8 @@ export default function ReportTab({
         </div>
       </section>
 
-      <p className="flex items-start gap-2 rounded-sm border border-[var(--color-ocean-amber)]/30 bg-[var(--color-ocean-amber)]/5 p-3 font-mono text-[11px] leading-relaxed text-[var(--color-ocean-amber)]/80">
-        <TriangleAlert size={13} className="mt-0.5 shrink-0" />
-        Simulated dataset for demonstration — coordinates and contacts are illustrative.
-        High-severity contacts should be verified by ROV before recovery operations.
+      <p className="text-[11px] text-[#6B6280]">
+        Simulated dataset for demonstration — coordinates/contacts illustrative. High-severity contacts must be verified by ROV before recovery.
       </p>
     </div>
   );
