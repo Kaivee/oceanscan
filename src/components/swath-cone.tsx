@@ -10,7 +10,7 @@ interface SwathConeProps {
 
 // Miniature sonar-cone glyph: towfish cone viewed side-on with a dot marking
 // the contact's cross-range position inside the swath (left / center / right).
-export default function SwathCone({ position, color = "#45566A", size = 14 }: SwathConeProps) {
+export default function SwathCone({ position, color = "#7D8590", size = 14 }: SwathConeProps) {
   const dotX = position === "left" ? 4.2 : position === "right" ? 11.8 : 8;
 
   return (
@@ -28,7 +28,7 @@ export default function SwathCone({ position, color = "#45566A", size = 14 }: Sw
 }
 
 export function coneColorForSeverity(severity: Severity): string {
-  if (severity === "high") return "#E63946";
-  if (severity === "medium") return "#C97A12";
-  return "#0E6BA8";
+  if (severity === "high") return "#FF5555";
+  if (severity === "medium") return "#FFB86C";
+  return "#8BE9FD";
 }

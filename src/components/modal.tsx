@@ -42,7 +42,7 @@ export default function Modal({ open, onClose, title, subtitle, icon, children, 
           </div>
           <button
             onClick={onClose}
-            className="rounded p-1.5 text-[var(--color-ocean-muted)] transition hover:bg-[var(--color-ocean-surface)] hover:text-[var(--color-ocean-red)]"
+            className="rounded-none p-1.5 text-[var(--color-ocean-muted)] transition hover:bg-[var(--color-ocean-surface)] hover:text-[var(--color-ocean-red)]"
             aria-label="Close"
           >
             <X size={16} />

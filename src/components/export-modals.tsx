@@ -58,7 +58,7 @@ export function GeojsonModal({
             onClick={() =>
               downloadText("oceanscan_hazard_export.geojson", payload, "application/geo+json")
             }
-            className="inline-flex flex-1 items-center justify-center gap-2 border border-[#0E6BA8] bg-[#0E6BA8] py-2.5 font-mono text-[11px] font-bold text-white transition hover:bg-[#0B5C8F]"
+            className="inline-flex flex-1 items-center justify-center gap-2 border border-[#8BE9FD] bg-[#8BE9FD] py-2.5 font-mono text-[11px] font-bold text-[#0D1117] transition hover:bg-[#0E9BBF]"
           >
             <Braces size={13} /> Download .geojson
           </button>

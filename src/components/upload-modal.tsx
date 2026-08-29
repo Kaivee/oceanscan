@@ -194,7 +194,7 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
               const f = e.dataTransfer.files?.[0];
               if (f) handleFile(f);
             }}
-            className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded border-2 border-dashed px-6 py-12 text-center transition ${
+            className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-none border-2 border-dashed px-6 py-12 text-center transition ${
               dragging
                 ? "border-[var(--color-ocean-sky)] bg-[var(--color-ocean-sky)]/5"
                 : phase === "error"
@@ -203,7 +203,7 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
             }`}
           >
             <span
-              className={`flex h-12 w-12 items-center justify-center rounded border ${
+              className={`flex h-12 w-12 items-center justify-center rounded-none border ${
                 phase === "error"
                   ? "border-[var(--color-ocean-red)]/50 text-[var(--color-ocean-red)]"
                   : "border-[var(--color-ocean-sky)]/30 text-[var(--color-ocean-sky)]"
@@ -219,10 +219,10 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
             </p>
           </div>
         ) : (
-          <div className="rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] p-5">
+          <div className="rounded-none border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] p-5">
             <div className="mb-3 flex items-center gap-3">
               <span
-                className={`flex h-10 w-10 items-center justify-center rounded border ${
+                className={`flex h-10 w-10 items-center justify-center rounded-none border ${
                   phase === "done"
                     ? "border-[var(--color-ocean-emerald)]/50 text-[var(--color-ocean-emerald)]"
                     : "border-[var(--color-ocean-sky)]/30 text-[var(--color-ocean-sky)]"
@@ -250,7 +250,7 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
             {phase === "done" && (
               <button
                 onClick={reset}
-                className="mt-4 w-full rounded-sm border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] py-2.5 font-mono text-xs font-bold text-[var(--color-ocean-text)] transition hover:bg-[var(--color-ocean-card)]"
+                className="mt-4 w-full rounded-none border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] py-2.5 font-mono text-xs font-bold text-[var(--color-ocean-text)] transition hover:bg-[var(--color-ocean-card)]"
               >
                 Ingest another file
               </button>

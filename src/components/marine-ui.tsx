@@ -16,7 +16,7 @@ export function SonarPingRipple({ className = "" }: { className?: string }) {
 
 export function TechnicalGrid() {
   return (
-    <div className="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(rgba(95,212,196,0.15)_1px,transparent_1px)] [background-size:20px_20px]">
+    <div className="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(rgba(139,233,253,0.15)_1px,transparent_1px)] [background-size:20px_20px]">
       <div className="absolute top-2 left-2 font-mono text-[9px] text-[var(--color-ocean-sky)]/60">
         {"41°19'00\"N | 70°33'00\"W"}
       </div>
@@ -82,7 +82,7 @@ export function MarineSurveyTable({ data, selectedId, onSelectTarget }: MarineTa
   };
 
   return (
-    <div className="w-full overflow-hidden rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
+    <div className="w-full overflow-hidden rounded-none border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead className="bg-[var(--color-ocean-surface)] font-mono uppercase tracking-widest text-[var(--color-ocean-muted)] border-b border-[var(--color-ocean-border)]">

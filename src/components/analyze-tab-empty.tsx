@@ -25,7 +25,7 @@ export function EmptyState({
         <p className="mx-auto mt-1 max-w-sm font-mono text-[11px] leading-relaxed text-[var(--color-ocean-muted)]">{body}</p>
         <button
           onClick={onCta}
-          className="mt-4 inline-flex items-center justify-center border border-[#0E6BA8] bg-[#0E6BA8] px-4 py-2 font-mono text-xs font-bold text-white transition hover:bg-[#0B5C8F]"
+          className="mt-4 inline-flex items-center justify-center border border-[#8BE9FD] bg-[#8BE9FD] px-4 py-2 font-mono text-xs font-bold text-[#0D1117] transition hover:bg-[#0E9BBF]"
         >
           {cta}
         </button>

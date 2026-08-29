@@ -110,8 +110,8 @@ function DepthRuler({ maxDepth = 60 }: { maxDepth?: number }) {
       <div className="relative flex flex-1 flex-col items-stretch justify-between py-1 font-mono">
         {ticks.map((m, i) => (
           <div key={m} className="flex items-center">
-            <span className={`px-1 text-[8px] tabular-nums ${i === 0 ? "text-[#C97A12]" : "text-[#7FD9CD]/85"}`}>{m}</span>
-            <span className="h-px w-1.5 bg-[#5FD4C4]/40" />
+            <span className={`px-1 text-[8px] tabular-nums ${i === 0 ? "text-[#FFB86C]" : "text-[#7FD9CD]/85"}`}>{m}</span>
+            <span className="h-px w-1.5 bg-[#8BE9FD]/40" />
           </div>
         ))}
       </div>
@@ -123,7 +123,7 @@ function SwathRuler() {
   return (
     <div className="col-start-2 row-start-2 flex items-center justify-between border-t border-[#2A4158] bg-[#0B1726] px-2 font-mono">
       {["-25M", "-12.5M", "NADIR", "+12.5M", "+25M"].map((l, i) => (
-        <span key={l} className={`text-[8px] tabular-nums ${i === 2 ? "font-bold text-[#5FD4C4]" : "text-[#7FD9CD]/85"}`}>
+        <span key={l} className={`text-[8px] tabular-nums ${i === 2 ? "font-bold text-[#8BE9FD]" : "text-[#7FD9CD]/85"}`}>
           {i === 2 ? "● " : ""}{l}
         </span>
       ))}
@@ -314,20 +314,20 @@ export default function AnalyzeTab({
     <div className="space-y-3">
       {displayTargets.length > 0 && (
         <div className="flex items-center gap-4 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] px-4 py-2.5 font-mono text-[10px]">
-          <span className="text-[#45566A] uppercase tracking-wider">Inspector:</span>
-          <span className="flex items-center gap-1.5 text-[#0E6BA8]">
-            <span className="h-1.5 w-1.5 bg-[#0E6BA8]" />
+          <span className="text-[#7D8590] uppercase tracking-wider">Inspector:</span>
+          <span className="flex items-center gap-1.5 text-[#8BE9FD]">
+            <span className="h-1.5 w-1.5 bg-[#8BE9FD]" />
             {confirmedCount} confirmed
           </span>
-          <span className="flex items-center gap-1.5 text-[#E63946]">
-            <span className="h-1.5 w-1.5 bg-[#E63946]" />
+          <span className="flex items-center gap-1.5 text-[#FF5555]">
+            <span className="h-1.5 w-1.5 bg-[#FF5555]" />
             {falsePositiveCount} false positive
           </span>
-          <span className="flex items-center gap-1.5 text-[#45566A]">
-            <span className="h-1.5 w-1.5 bg-[#45566A]" />
+          <span className="flex items-center gap-1.5 text-[#7D8590]">
+            <span className="h-1.5 w-1.5 bg-[#7D8590]" />
             {pendingCount} pending
           </span>
-          <span className="ml-auto text-[#45566A]/70">← → to cycle</span>
+          <span className="ml-auto text-[#7D8590]/70">← → to cycle</span>
         </div>
       )}
 
@@ -336,8 +336,8 @@ export default function AnalyzeTab({
           <section className="overflow-hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
             <div className="flex items-center gap-3 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
               <div className="mr-auto min-w-0">
-                <h2 className="font-display text-sm font-semibold tracking-wide text-[#10202E]">ACOUSTIC VIEWPORT</h2>
-                <p className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-[#45566A]">
+                <h2 className="font-display text-sm font-semibold tracking-wide text-[#E6EDF3]">ACOUSTIC VIEWPORT</h2>
+                <p className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-[#7D8590]">
                   {selectedImageUrl
                     ? `CAPTURED RECORD · ${uploadedImages.find((i) => i.url === selectedImageUrl)?.name ?? "uploaded image"} · ${gatedTargets.length} detection${gatedTargets.length !== 1 ? "s" : ""}`
                     : "Upload a survey frame to analyse"}
@@ -352,8 +352,8 @@ export default function AnalyzeTab({
                       onClick={() => setViewMode(m.key)}
                       className={`px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider transition ${
                         viewMode === m.key
-                          ? "bg-[#0E6BA8] text-white"
-                          : "text-[#45566A] hover:text-[#10202E]"
+                          ? "bg-[#8BE9FD] text-[#0D1117]"
+                          : "text-[#7D8590] hover:text-[#E6EDF3]"
                       }`}
                     >
                       {m.label}
@@ -438,11 +438,11 @@ export default function AnalyzeTab({
                     <SonarPreview opacity={0.3} label="IDLE · SELECT A SURVEY FRAME TO ANALYSE" />
                     <div className="absolute inset-0 grid place-items-center bg-[var(--color-ocean-card)]/40 p-4">
                       <div className="max-w-sm border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] p-6 text-center glow-border">
-                        <span className="mx-auto flex h-11 w-11 items-center justify-center border border-[#5FD4C4]/40 bg-[#5FD4C4]/10 text-[var(--color-ocean-sky)]">
+                        <span className="mx-auto flex h-11 w-11 items-center justify-center border border-[#8BE9FD]/40 bg-[#8BE9FD]/10 text-[var(--color-ocean-sky)]">
                           <ImageIcon size={22} />
                         </span>
-                        <h3 className="mt-3 font-display text-sm font-semibold text-[#10202E]">No image selected</h3>
-                        <p className="mt-1.5 font-sans text-[11px] leading-relaxed text-[#45566A]">
+                        <h3 className="mt-3 font-display text-sm font-semibold text-[#E6EDF3]">No image selected</h3>
+                        <p className="mt-1.5 font-sans text-[11px] leading-relaxed text-[#7D8590]">
                           Select an uploaded image from the list to view detections.
                         </p>
                       </div>
@@ -460,16 +460,16 @@ export default function AnalyzeTab({
                 )}
 
                 {viewMode !== "compare" && (
-                  <div className="pointer-events-none absolute left-2 top-2 z-10 border bg-[var(--color-ocean-card)]/90 px-2 py-1 font-mono text-[9px] tracking-wider text-[#10202E] backdrop-blur">
+                  <div className="pointer-events-none absolute left-2 top-2 z-10 border bg-[var(--color-ocean-card)]/90 px-2 py-1 font-mono text-[9px] tracking-wider text-[#E6EDF3] backdrop-blur">
                     {viewMode === "raw" ? (
-                      <span className="text-[#0E6BA8]">[CAPTURED RECORD // UTC {capturedAt}]</span>
+                      <span className="text-[#8BE9FD]">[CAPTURED RECORD // UTC {capturedAt}]</span>
                     ) : (
                       "CLICK BOX TO INSPECT"
                     )}
                   </div>
                 )}
                 {viewMode === "compare" && (
-                  <div className="pointer-events-none absolute left-2 top-2 z-10 border bg-[var(--color-ocean-card)]/90 px-2 py-1 font-mono text-[9px] tracking-wider text-[#0E6BA8]">
+                  <div className="pointer-events-none absolute left-2 top-2 z-10 border bg-[var(--color-ocean-card)]/90 px-2 py-1 font-mono text-[9px] tracking-wider text-[#8BE9FD]">
                     [CAPTURED RECORD // UTC {capturedAt}] · DRAG TO COMPARE
                   </div>
                 )}
@@ -481,9 +481,9 @@ export default function AnalyzeTab({
                     onMouseDown={handleSplitDown}
                     onTouchStart={handleSplitDown}
                   >
-                    <div className="h-full w-0.5 bg-[#5FD4C4] shadow-[0_0_8px_rgba(95,212,196,0.6)]" />
-                    <div className="absolute top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center border border-[#5FD4C4]/70 bg-[var(--color-ocean-card)]/95 shadow-lg -rotate-45">
-                      <MousePointer2 size={13} className="text-[#5FD4C4] -rotate-45" />
+                    <div className="h-full w-0.5 bg-[#8BE9FD] shadow-[0_0_8px_rgba(139,233,253,0.6)]" />
+                    <div className="absolute top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center border border-[#8BE9FD]/70 bg-[var(--color-ocean-card)]/95 shadow-lg -rotate-45">
+                      <MousePointer2 size={13} className="text-[#8BE9FD] -rotate-45" />
                     </div>
                   </div>
                 )}
@@ -495,14 +495,14 @@ export default function AnalyzeTab({
             <AcousticIntensityProfile hover={hoverPos} targets={displayTargets} />
 
             <div className="flex items-center justify-between border-t border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-1.5">
-              <span className="font-mono text-[9px] text-[#45566A]">
+              <span className="font-mono text-[9px] text-[#7D8590]">
                 {selectedImageUrl
                   ? viewMode === "compare"
                     ? "Drag slider to compare raw sonar vs AI detections"
                     : "Fixed record — click a bounding box to inspect and annotate"
                   : "Upload a survey to get started"}
               </span>
-              <span className="font-mono text-[9px] uppercase tracking-widest text-[#45566A]">
+              <span className="font-mono text-[9px] uppercase tracking-widest text-[#7D8590]">
                 Datum WGS-84
               </span>
             </div>
@@ -514,12 +514,12 @@ export default function AnalyzeTab({
           <section className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
             <div className="flex items-center gap-3 border-b border-dashed border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
               <div className="mr-auto min-w-0">
-                <h3 className="font-display text-xs font-semibold tracking-wide text-[#10202E]">SURVEY MANIFEST</h3>
-                <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#45566A]">
+                <h3 className="font-display text-xs font-semibold tracking-wide text-[#E6EDF3]">SURVEY MANIFEST</h3>
+                <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#7D8590]">
                   ruled ledger · coordinate record
                 </p>
               </div>
-              <span className="border border-[#0E6BA8]/30 bg-[#0E6BA8]/5 px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-widest text-[#0E6BA8]">
+              <span className="border border-[#8BE9FD]/30 bg-[#8BE9FD]/5 px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-widest text-[#8BE9FD]">
                 TKT-{String(manifest.total).padStart(3, "0")}
               </span>
             </div>
@@ -528,11 +528,11 @@ export default function AnalyzeTab({
               <LedgerRow label="Area surveyed" value={`${manifest.areaSqm.toLocaleString()} m²`} />
               <LedgerRow label="Total contacts" value={`${manifest.total}`} strong />
               <div className="my-2 border-t border-dashed border-[var(--color-ocean-border)]" />
-              <LedgerRow label="High risk" value={`${manifest.high}`} valueClass="text-[#E63946]" />
-              <LedgerRow label="Medium risk" value={`${manifest.medium}`} valueClass="text-[#C97A12]" />
-              <LedgerRow label="Low risk" value={`${manifest.low}`} valueClass="text-[#0E6BA8]" />
+              <LedgerRow label="High risk" value={`${manifest.high}`} valueClass="text-[#FF5555]" />
+              <LedgerRow label="Medium risk" value={`${manifest.medium}`} valueClass="text-[#FFB86C]" />
+              <LedgerRow label="Low risk" value={`${manifest.low}`} valueClass="text-[#8BE9FD]" />
               <div className="my-2 border-t border-dashed border-[var(--color-ocean-border)]" />
-              <div className="-rotate-2 border-2 border-[#0E6BA8]/50 px-2 py-1 text-center font-mono text-[8px] font-bold uppercase tracking-[0.22em] text-[#0E6BA8]">
+              <div className="-rotate-2 border-2 border-[#8BE9FD]/50 px-2 py-1 text-center font-mono text-[8px] font-bold uppercase tracking-[0.22em] text-[#8BE9FD]">
                 <Stamp size={9} className="mr-1 inline -translate-y-px" />
                 VERIFIED // AI-ASSISTED REVIEW REQUIRED
               </div>
@@ -543,12 +543,12 @@ export default function AnalyzeTab({
           <section className="flex items-center gap-4 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] p-3">
             <RadialGainDial value={confGate} onChange={setConfGate} label="CONF. GATE" size={86} />
             <div className="min-w-0">
-              <p className="font-mono text-[10px] font-bold text-[#10202E]">Confidence threshold</p>
-              <p className="mt-0.5 font-mono text-[9px] leading-relaxed text-[#45566A]">
+              <p className="font-mono text-[10px] font-bold text-[#E6EDF3]">Confidence threshold</p>
+              <p className="mt-0.5 font-mono text-[9px] leading-relaxed text-[#7D8590]">
                 Only contacts scoring ≥ {confGate}% are exposed.
               </p>
               {confGate > 0 && gatedTargets.length < displayTargets.length && (
-                <p className="mt-1 font-mono text-[8px] uppercase tracking-wider text-[#C97A12]">
+                <p className="mt-1 font-mono text-[8px] uppercase tracking-wider text-[#FFB86C]">
                   {displayTargets.length - gatedTargets.length} masked by gate
                 </p>
               )}
@@ -558,8 +558,8 @@ export default function AnalyzeTab({
           {hasUploads && (
             <section className="overflow-hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
               <div className="border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
-                <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#10202E]">UPLOADED IMAGES</h3>
-                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#45566A]">
+                <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#E6EDF3]">UPLOADED IMAGES</h3>
+                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#7D8590]">
                   {uploadedImages.length} file{uploadedImages.length !== 1 ? "s" : ""} · click to view
                 </p>
               </div>
@@ -579,23 +579,23 @@ export default function AnalyzeTab({
                         }`}
                       >
                         {hasDetections ? (
-                          <CircleCheck size={14} className="shrink-0 text-[#0E6BA8]" />
+                          <CircleCheck size={14} className="shrink-0 text-[#8BE9FD]" />
                         ) : (
-                          <CircleX size={14} className="shrink-0 text-[#45566A]/40" />
+                          <CircleX size={14} className="shrink-0 text-[#7D8590]/40" />
                         )}
                         <span className="min-w-0 flex-1">
                           <span
-                            className={`block truncate font-mono text-xs ${isSelected ? "font-bold text-[#0E6BA8]" : "text-[#10202E]"}`}
+                            className={`block truncate font-mono text-xs ${isSelected ? "font-bold text-[#8BE9FD]" : "text-[#E6EDF3]"}`}
                           >
                             {img.name}
                           </span>
-                          <span className="block font-mono text-[9px] tracking-wide text-[#45566A]">
+                          <span className="block font-mono text-[9px] tracking-wide text-[#7D8590]">
                             {hasDetections
                               ? `${img.targetCount} anomal${img.targetCount === 1 ? "y" : "ies"} found`
                               : "No anomalies detected"}
                           </span>
                         </span>
-                        <ChevronRight size={13} className={`shrink-0 ${isSelected ? "text-[#0E6BA8]" : "text-[#45566A]/40"}`} />
+                        <ChevronRight size={13} className={`shrink-0 ${isSelected ? "text-[#8BE9FD]" : "text-[#7D8590]/40"}`} />
                       </button>
                     </li>
                   );
@@ -605,10 +605,10 @@ export default function AnalyzeTab({
           )}
 
           {selectedTarget && (
-            <section className="border border-[#5FD4C4]/40 bg-[var(--color-ocean-card)]">
+            <section className="border border-[#8BE9FD]/40 bg-[var(--color-ocean-card)]">
               <div className="border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
-                <h3 className="font-mono text-[11px] font-bold text-[#0E6BA8]">INSPECT: {selectedTarget.id}</h3>
-                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#45566A]">
+                <h3 className="font-mono text-[11px] font-bold text-[#8BE9FD]">INSPECT: {selectedTarget.id}</h3>
+                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#7D8590]">
                   {selectedTarget.label} · {Math.round(selectedTarget.confidence * 100)}% confidence
                 </p>
               </div>
@@ -618,8 +618,8 @@ export default function AnalyzeTab({
                     onClick={() => handleConfirm(selectedTarget.id)}
                     className={`${verifyPulseId === selectedTarget.id ? "verify-pulse" : ""} flex flex-1 items-center justify-center gap-1.5 border py-2 font-mono text-[10px] font-bold uppercase tracking-wider transition ${
                       selectedTarget.detectionStatus === "confirmed"
-                        ? "border-[#0E6BA8]/60 bg-[#0E6BA8]/10 text-[#0E6BA8]"
-                        : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[#45566A] hover:bg-[var(--color-ocean-card)]"
+                        ? "border-[#8BE9FD]/60 bg-[#8BE9FD]/10 text-[#8BE9FD]"
+                        : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[#7D8590] hover:bg-[var(--color-ocean-card)]"
                     }`}
                   >
                     <Check size={12} /> Confirm
@@ -628,8 +628,8 @@ export default function AnalyzeTab({
                     onClick={() => onStatusChange(selectedTarget.id, "false_positive")}
                     className={`flex flex-1 items-center justify-center gap-1.5 border py-2 font-mono text-[10px] font-bold uppercase tracking-wider transition ${
                       selectedTarget.detectionStatus === "false_positive"
-                        ? "border-[#E63946]/60 bg-[#E63946]/10 text-[#E63946]"
-                        : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[#45566A] hover:bg-[var(--color-ocean-card)]"
+                        ? "border-[#FF5555]/60 bg-[#FF5555]/10 text-[#FF5555]"
+                        : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[#7D8590] hover:bg-[var(--color-ocean-card)]"
                     }`}
                   >
                     <X size={12} /> False Positive
@@ -637,7 +637,7 @@ export default function AnalyzeTab({
                 </div>
 
                 <div>
-                  <label className="mb-1 flex items-center gap-1.5 font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-[#45566A]">
+                  <label className="mb-1 flex items-center gap-1.5 font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-[#7D8590]">
                     <StickyNote size={10} /> Analyst Notes
                   </label>
                   <NoteEditor
@@ -649,20 +649,20 @@ export default function AnalyzeTab({
 
                 <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
                   <div className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-2.5 py-1.5">
-                    <span className="text-[#45566A]">Depth:</span>{" "}
-                    <span className="text-[#10202E]">{selectedTarget.depthM}m</span>
+                    <span className="text-[#7D8590]">Depth:</span>{" "}
+                    <span className="text-[#E6EDF3]">{selectedTarget.depthM}m</span>
                   </div>
                   <div className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-2.5 py-1.5">
-                    <span className="text-[#45566A]">Risk:</span>{" "}
+                    <span className="text-[#7D8590]">Risk:</span>{" "}
                     <span style={{ color: SEVERITY_META[selectedTarget.severity].stroke }}>{SEVERITY_META[selectedTarget.severity].label}</span>
                   </div>
                   <div className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-2.5 py-1.5">
-                    <span className="text-[#45566A]">Size:</span>{" "}
-                    <span className="text-[#10202E]">{selectedTarget.dims.length} × {selectedTarget.dims.width}m</span>
+                    <span className="text-[#7D8590]">Size:</span>{" "}
+                    <span className="text-[#E6EDF3]">{selectedTarget.dims.length} × {selectedTarget.dims.width}m</span>
                   </div>
                   <div className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-2.5 py-1.5">
-                    <span className="text-[#45566A]">Lat:</span>{" "}
-                    <span className="text-[#10202E]">{selectedTarget.lat.toFixed(4)}</span>
+                    <span className="text-[#7D8590]">Lat:</span>{" "}
+                    <span className="text-[#E6EDF3]">{selectedTarget.lat.toFixed(4)}</span>
                   </div>
                 </div>
               </div>
@@ -671,14 +671,14 @@ export default function AnalyzeTab({
 
           <section className="flex-1 min-h-0 overflow-hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
             <div className="flex items-center gap-2 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
-              <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#10202E]">REGISTER OF FOUND OBJECTS</h3>
-              <p className="ml-auto font-mono text-[8px] uppercase tracking-widest text-[#45566A]">
+              <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#E6EDF3]">REGISTER OF FOUND OBJECTS</h3>
+              <p className="ml-auto font-mono text-[8px] uppercase tracking-widest text-[#7D8590]">
                 {gatedTargets.length} / {displayTargets.length} contact{gatedTargets.length !== 1 ? "s" : ""}
               </p>
             </div>
             <ul className="divide-y divide-[var(--color-ocean-border)] overflow-y-auto" style={{ maxHeight: "calc(100vh - 560px)", minHeight: "80px" }}>
               {gatedTargets.length === 0 && (
-                <li className="px-4 py-6 text-center font-mono text-[11px] text-[#45566A]">
+                <li className="px-4 py-6 text-center font-mono text-[11px] text-[#7D8590]">
                   {displayTargets.length === 0
                     ? "Select an image to view detections."
                     : confGate > 0
@@ -703,17 +703,17 @@ export default function AnalyzeTab({
                       <SwathCone position={pos} color={coneColorForSeverity(t.severity)} />
                       <span className="min-w-0 flex-1">
                         <span
-                          className={`block truncate font-mono text-xs ${isSel ? "font-bold text-[#0E6BA8]" : "text-[#10202E]"}`}
+                          className={`block truncate font-mono text-xs ${isSel ? "font-bold text-[#8BE9FD]" : "text-[#E6EDF3]"}`}
                         >
                           {t.label}
                         </span>
-                        <span className="block font-mono text-[9px] tracking-wide text-[#45566A]">
+                        <span className="block font-mono text-[9px] tracking-wide text-[#7D8590]">
                           {t.id} · {pos.toUpperCase()} OFFSET · {Math.round(t.confidence * 100)}%
-                          {t.detectionStatus === "confirmed" && <span className="ml-1 text-[#0E6BA8]">✓ confirmed</span>}
-                          {t.detectionStatus === "false_positive" && <span className="ml-1 text-[#E63946]">✗ false +</span>}
+                          {t.detectionStatus === "confirmed" && <span className="ml-1 text-[#8BE9FD]">✓ confirmed</span>}
+                          {t.detectionStatus === "false_positive" && <span className="ml-1 text-[#FF5555]">✗ false +</span>}
                         </span>
                       </span>
-                      <ChevronRight size={13} className={`shrink-0 ${isSel ? "text-[#0E6BA8]" : "text-[#45566A]/40"}`} />
+                      <ChevronRight size={13} className={`shrink-0 ${isSel ? "text-[#8BE9FD]" : "text-[#7D8590]/40"}`} />
                     </button>
                   </li>
                 );
@@ -732,7 +732,7 @@ function LedgerRow({
   label,
   value,
   strong = false,
-  valueClass = "text-[#10202E]",
+  valueClass = "text-[#E6EDF3]",
 }: {
   label: string;
   value: string;
@@ -741,7 +741,7 @@ function LedgerRow({
 }) {
   return (
     <div className="flex items-baseline gap-2 py-[5px] font-mono text-[10px]">
-      <span className={`shrink-0 uppercase tracking-wide ${strong ? "font-bold text-[#10202E]" : "text-[#45566A]"}`}>{label}</span>
+      <span className={`shrink-0 uppercase tracking-wide ${strong ? "font-bold text-[#E6EDF3]" : "text-[#7D8590]"}`}>{label}</span>
       <span className="mx-1 flex-1 border-b border-dotted border-[#B9C6D2]" />
       <span className={`shrink-0 tabular-nums ${strong ? "font-bold" : "font-semibold"} ${valueClass}`}>{value}</span>
     </div>
@@ -769,7 +769,7 @@ function NoteEditor({
       }}
       placeholder="Add notes about this detection..."
       rows={3}
-      className="w-full resize-y border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-3 py-2 font-mono text-[11px] text-[#10202E] placeholder:text-[#45566A]/40 focus:border-[#0E6BA8] focus:outline-none"
+      className="w-full resize-y border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-3 py-2 font-mono text-[11px] text-[#E6EDF3] placeholder:text-[#7D8590]/40 focus:border-[#8BE9FD] focus:outline-none"
     />
   );
 }

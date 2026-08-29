@@ -20,8 +20,8 @@ import type { PendingUpload } from "@/app/page";
 
 const CANVAS_W = 1200;
 const CANVAS_H = 800;
-const SCAN_DURATION_MS = 7000;   // demo sweep
-const INGEST_DURATION_MS = 6500; // file waterfall parse
+const SCAN_DURATION_MS = 3500;   // one-time demo sweep — hard freeze at 100%
+const INGEST_DURATION_MS = 3500; // one-time file waterfall parse — hard freeze
 
 function uploadKey(u: PendingUpload | null) {
   return u ? `${u.fileName}|${u.imageUrl}` : null;
@@ -84,7 +84,7 @@ function paintSeabed(ctx: CanvasRenderingContext2D) {
     const amp = 5 + rand() * 14;
     const wl = 100 + rand() * 150;
     const phase = rand() * Math.PI * 2;
-    ctx.strokeStyle = `rgba(95,212,196,${0.025 + rand() * 0.04})`;
+    ctx.strokeStyle = `rgba(139,233,253,${0.025 + rand() * 0.04})`;
     ctx.beginPath();
     for (let x = 0; x <= W; x += 14) {
       const y = y0 + Math.sin((x / wl) * Math.PI * 2 + phase) * amp;
@@ -112,7 +112,7 @@ function paintSeabed(ctx: CanvasRenderingContext2D) {
     ctx.fill();
 
     const rock = ctx.createRadialGradient(cx - rx * 0.3, cy - ry * 0.3, 2, cx, cy, rx);
-    rock.addColorStop(0, "rgba(95,212,196,0.3)");
+    rock.addColorStop(0, "rgba(139,233,253,0.3)");
     rock.addColorStop(1, "rgba(8,20,32,0)");
     ctx.fillStyle = rock;
     ctx.beginPath();
@@ -133,6 +133,18 @@ function paintSeabed(ctx: CanvasRenderingContext2D) {
     ctx.ellipse(x + r * 2.8, y + 1, r * 3, r * 0.8, 0, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  // Nadir gap — the vertical water-column blank beneath the towfish transducer.
+  // No acoustic return is painted there, so it stays a near-black acoustic bed
+  // with soft falloff into the port/starboard swaths.
+  const nadirW = W * 0.13;
+  const nadirMid = W / 2;
+  const nadir = ctx.createLinearGradient(nadirMid - nadirW, 0, nadirMid + nadirW, 0);
+  nadir.addColorStop(0, "rgba(2,4,8,0)");
+  nadir.addColorStop(0.5, "rgba(1,2,4,0.95)");
+  nadir.addColorStop(1, "rgba(2,4,8,0)");
+  ctx.fillStyle = nadir;
+  ctx.fillRect(nadirMid - nadirW * 1.6, 0, nadirW * 3.2, H);
 
   const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, W * 0.68);
   vig.addColorStop(0, "rgba(0,0,0,0)");
@@ -273,13 +285,13 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
       const trailW = Math.min(200, sweepX);
 
       const grad = ctx.createLinearGradient(sweepX - trailW, 0, sweepX, 0);
-      grad.addColorStop(0, "rgba(95,212,196,0)");
-      grad.addColorStop(0.7, "rgba(95,212,196,0.08)");
-      grad.addColorStop(1, "rgba(95,212,196,0.18)");
+      grad.addColorStop(0, "rgba(139,233,253,0)");
+      grad.addColorStop(0.7, "rgba(139,233,253,0.08)");
+      grad.addColorStop(1, "rgba(139,233,253,0.18)");
       ctx.fillStyle = grad;
       ctx.fillRect(sweepX - trailW, 0, trailW, CANVAS_H);
 
-      ctx.fillStyle = "rgba(95,212,196,0.9)";
+      ctx.fillStyle = "rgba(139,233,253,0.9)";
       ctx.fillRect(sweepX - 1, 0, 2.5, CANVAS_H);
 
       for (const t of sortedBySweep) {
@@ -335,9 +347,9 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
       ctx.fillStyle = dark;
       ctx.fillRect(0, recY, CANVAS_W, CANVAS_H - recY);
 
-      ctx.fillStyle = "rgba(95,212,196,0.8)";
+      ctx.fillStyle = "rgba(139,233,253,0.8)";
       ctx.fillRect(0, recY, CANVAS_W, 1.6);
-      ctx.shadowColor = "rgba(95,212,196,0.5)";
+      ctx.shadowColor = "rgba(139,233,253,0.5)";
       ctx.shadowBlur = 10;
       ctx.fillRect(0, recY, CANVAS_W, 1.4);
       ctx.shadowBlur = 0;
@@ -409,7 +421,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
                 className={`border px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider transition ${
                   claheEnabled
                     ? "border-[var(--color-ocean-primary)] bg-[var(--color-ocean-primary)] text-white"
-                    : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[#45566A]"
+                    : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[#7D8590]"
                 }`}
               >
                 CLAHE {claheEnabled ? "ON" : "OFF"}
@@ -425,7 +437,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
                 <button
                   onClick={() => (pendingUpload ? startIngest() : startScan())}
                   disabled={running}
-                  className="bg-[var(--color-ocean-primary)] px-3 py-1.5 font-mono text-[11px] font-bold text-white transition hover:bg-[#0B5C8F] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="bg-[var(--color-ocean-primary)] px-3 py-1.5 font-mono text-[11px] font-bold text-white transition hover:bg-[#0E9BBF] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {running ? (
                     pendingUpload ? `PARSING ${progress}%` : `SCANNING ${progress}%`
@@ -498,7 +510,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
           {(running || done) && (
             <div className="pointer-events-none absolute bottom-3 left-3 flex gap-2.5 border bg-[var(--color-ocean-console)]/85 px-3 py-1.5">
               {(["high", "medium", "low"] as const).map((s) => (
-                <span key={s} className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider text-[#B9C6D2]">
+                <span key={s} className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider text-[#9DA7B3]">
                   <span className="h-1.5 w-1.5" style={{ backgroundColor: SEVERITY_META[s].stroke }} />
                   {SEVERITY_META[s].label}
                 </span>
@@ -507,7 +519,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
           )}
 
           {cursorPos && (
-            <div className="pointer-events-none absolute right-3 top-3 z-10 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]/90 px-2.5 py-1.5 font-mono text-[9px] text-[#10202E] backdrop-blur">
+            <div className="pointer-events-none absolute right-3 top-3 z-10 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]/90 px-2.5 py-1.5 font-mono text-[9px] text-[#E6EDF3] backdrop-blur">
               <div>{pendingUpload ? "PING" : "DEPTH"}: {(12 + (cursorPos.y / CANVAS_H) * 50).toFixed(1)} m</div>
               <div>RANGE: {(4 + (cursorPos.x / CANVAS_W) * 8).toFixed(1)} m</div>
               <div>dB: {(-42 + (Math.sin(cursorPos.x * 12.9898 + cursorPos.y * 78.233) * 0.5 + 0.5) * 12).toFixed(1)} dB</div>
@@ -519,14 +531,14 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
         <div className={`grid grid-cols-2 gap-px border-t border-[var(--color-ocean-border)] bg-[var(--color-ocean-border)] sm:grid-cols-5`}>
           <TelemetryCell label="FILE" value={pendingUpload?.fileName ?? "07011_SIDESCAN.XTF"} className="col-span-2 sm:col-span-1" />
           <TelemetryCell label="SIZE" value={pendingUpload ? formatBytes(fileSizeBytes) : "64.2 MB"} />
-          <TelemetryCell label="PARSE" value={`${progress}%`} tone={progress === 100 ? "text-[#0E6BA8]" : "text-[#10202E]"} />
+          <TelemetryCell label="PARSE" value={`${progress}%`} tone={progress === 100 ? "text-[#8BE9FD]" : "text-[#E6EDF3]"} />
           <TelemetryCell label="PINGS" value={`${pingsShown.toLocaleString()} / ${totalPings.toLocaleString()}`} />
-          <TelemetryCell label="STATUS" value={startLabel} tone={done ? "text-[#0E6BA8]" : running ? "text-[#C97A12]" : "text-[#45566A]"} />
+          <TelemetryCell label="STATUS" value={startLabel} tone={done ? "text-[#8BE9FD]" : running ? "text-[#FFB86C]" : "text-[#7D8590]"} />
         </div>
 
         <div className="h-1 bg-[var(--color-ocean-surface)]">
           <div
-            className={`h-full transition-[width] duration-150 ${done ? "bg-[#0E6BA8]" : "bg-[var(--color-ocean-sky)]"}`}
+            className={`h-full transition-[width] duration-150 ${done ? "bg-[#8BE9FD]" : "bg-[var(--color-ocean-sky)]"}`}
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -534,10 +546,10 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
 
       <aside className="flex min-w-0 flex-col gap-3">
         <section className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] p-4">
-          <p className="font-mono text-[9px] font-medium uppercase tracking-[0.18em] text-[#45566A]">Contacts identified</p>
-          <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-[#10202E]">
+          <p className="font-mono text-[9px] font-medium uppercase tracking-[0.18em] text-[#7D8590]">Contacts identified</p>
+          <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-[#E6EDF3]">
             <NumberTicker value={log.length} />
-            <span className="text-base font-medium text-[#45566A]"> / {targetCount}</span>
+            <span className="text-base font-medium text-[#7D8590]"> / {targetCount}</span>
           </p>
           <div className="mt-3 space-y-1.5 border-t border-dashed border-[var(--color-ocean-border)] pt-3">
             {(["high", "medium", "low"] as const).map((s) => {
@@ -545,37 +557,37 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
               return (
                 <div key={s} className="flex items-center gap-2 font-mono text-[11px]">
                   <span className="h-2 w-2 rotate-45" style={{ backgroundColor: SEVERITY_META[s].stroke }} />
-                  <span className="uppercase tracking-wide text-[#45566A]">{SEVERITY_META[s].label} RISK</span>
-                  <span className="ml-auto font-bold tabular-nums text-[#10202E]">{n}</span>
+                  <span className="uppercase tracking-wide text-[#7D8590]">{SEVERITY_META[s].label} RISK</span>
+                  <span className="ml-auto font-bold tabular-nums text-[#E6EDF3]">{n}</span>
                 </div>
               );
             })}
           </div>
           {done && (
-            <div className={`fade-up mt-4 border border-[var(--color-ocean-emerald)]/40 bg-[#0E6BA8]/5 p-3 ${pendingUpload ? "" : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)]"}`}>
+            <div className={`fade-up mt-4 border border-[var(--color-ocean-emerald)]/40 bg-[#8BE9FD]/5 p-3 ${pendingUpload ? "" : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)]"}`}>
               {pendingUpload ? (
                 <>
-                  <p className="flex items-center gap-1.5 font-mono text-xs font-bold text-[#0E6BA8]">
+                  <p className="flex items-center gap-1.5 font-mono text-xs font-bold text-[#8BE9FD]">
                     <CircleCheck size={14} /> INGEST COMPLETE — PARSER STOPPED
                   </p>
-                  <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-[#45566A]">
+                  <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-[#7D8590]">
                     Waterfall frozen · {totalPings.toLocaleString()} ping rows · carry frame to Analyze
                   </p>
                   <button
                     onClick={onGoAnalyze}
-                    className="mt-2.5 inline-flex w-full items-center justify-center gap-1.5 bg-[#0E6BA8] py-2 font-mono text-xs font-bold text-white transition hover:bg-[#0B5C8F]"
+                    className="mt-2.5 inline-flex w-full items-center justify-center gap-1.5 bg-[#8BE9FD] py-2 font-mono text-xs font-bold text-[#0D1117] transition hover:bg-[#0E9BBF]"
                   >
                     Analyze frozen frame <ArrowRight size={13} />
                   </button>
                 </>
               ) : (
                 <>
-                  <p className="flex items-center gap-1.5 font-mono text-xs font-bold text-[#0E6BA8]">
+                  <p className="flex items-center gap-1.5 font-mono text-xs font-bold text-[#8BE9FD]">
                     <CircleCheck size={14} /> SCAN COMPLETE — LOG CLOSED
                   </p>
                   <button
                     onClick={onGoAnalyze}
-                    className="mt-2.5 inline-flex w-full items-center justify-center gap-1.5 bg-[#0E6BA8] py-2 font-mono text-xs font-bold text-white transition hover:bg-[#0B5C8F]"
+                    className="mt-2.5 inline-flex w-full items-center justify-center gap-1.5 bg-[#8BE9FD] py-2 font-mono text-xs font-bold text-[#0D1117] transition hover:bg-[#0E9BBF]"
                   >
                     Review findings <ArrowRight size={13} />
                   </button>
@@ -587,17 +599,17 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
 
         <section className="overflow-hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
           <div className="flex items-center gap-2 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2">
-            <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#10202E]">DETECTION LOG</h3>
+            <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#E6EDF3]">DETECTION LOG</h3>
             {running && (
               <span className="relative ml-auto flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping bg-[#E63946] opacity-75" />
-                <span className="relative inline-flex h-2 w-2 bg-[#E63946]" />
+                <span className="absolute inline-flex h-full w-full animate-ping bg-[#FF5555] opacity-75" />
+                <span className="relative inline-flex h-2 w-2 bg-[#FF5555]" />
               </span>
             )}
           </div>
           <ul ref={logRef} className="max-h-56 space-y-0 overflow-y-auto p-0 lg:max-h-[280px]">
             {log.length === 0 && (
-              <li className="px-4 py-6 text-center font-mono text-[11px] text-[#45566A]">
+              <li className="px-4 py-6 text-center font-mono text-[11px] text-[#7D8590]">
                 Log entries appear here as contacts are found.
               </li>
             )}
@@ -614,11 +626,11 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
                   className="flex w-full items-center gap-2 px-3 py-2 text-left font-mono text-[10px] transition-colors hover:bg-[var(--color-ocean-surface)]"
                   title="Slew viewport to target"
                 >
-                  <span className="tabular-nums text-[#45566A]">{e.time}</span>
+                  <span className="tabular-nums text-[#7D8590]">{e.time}</span>
                   <span className="h-1.5 w-1.5 shrink-0" style={{ backgroundColor: SEVERITY_META[e.target.severity].stroke }} />
-                  <span className="font-bold text-[#0E6BA8]">{e.target.id}</span>
-                  <span className="truncate text-[#10202E]">{e.target.label}</span>
-                  <span className="ml-auto shrink-0 font-semibold tabular-nums text-[#0E6BA8]">
+                  <span className="font-bold text-[#8BE9FD]">{e.target.id}</span>
+                  <span className="truncate text-[#E6EDF3]">{e.target.label}</span>
+                  <span className="ml-auto shrink-0 font-semibold tabular-nums text-[#8BE9FD]">
                     {Math.round(e.target.confidence * 100)}%
                   </span>
                 </button>
@@ -628,7 +640,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
         </section>
 
         <section className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] p-4">
-          <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#10202E]">ACQUISITION PIPELINE</h3>
+          <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#E6EDF3]">ACQUISITION PIPELINE</h3>
           <ol className="mt-3 space-y-2.5">
             {(pendingUpload ? [
               { icon: <FileText size={13} />, text: `.XTF/.JSF parser reads ${totalPings.toLocaleString()} ping rows` },
@@ -639,8 +651,8 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
               { icon: <ScanLine size={13} />, text: "Echoes paint seabed image beam-by-beam (SLAR)" },
               { icon: <Cpu size={13} />, text: "TensorRT INT8 classifier flags hard acoustic returns" },
             ]).map((step, i) => (
-              <li key={i} className="flex items-start gap-2 text-[11px] leading-relaxed text-[#45566A]">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center border border-[var(--color-ocean-sky)]/40 bg-[#5FD4C4]/10 font-mono text-[9px] font-bold text-[#0E6BA8]">
+              <li key={i} className="flex items-start gap-2 text-[11px] leading-relaxed text-[#7D8590]">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center border border-[var(--color-ocean-sky)]/40 bg-[#8BE9FD]/10 font-mono text-[9px] font-bold text-[#8BE9FD]">
                   {i + 1}
                 </span>
                 <span className="pt-0.5">{step.text}</span>
@@ -657,7 +669,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
 function TelemetryCell({
   label,
   value,
-  tone = "text-[#10202E]",
+  tone = "text-[#E6EDF3]",
   className = "",
 }: {
   label: string;
@@ -667,7 +679,7 @@ function TelemetryCell({
 }) {
   return (
     <div className={`min-w-0 bg-[var(--color-ocean-card)] px-3 py-2 ${className}`}>
-      <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-[#45566A]">{label}</p>
+      <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-[#7D8590]">{label}</p>
       <p className={`mt-0.5 truncate font-mono text-[11px] font-semibold tabular-nums ${tone}`}>{value}</p>
     </div>
   );

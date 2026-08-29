@@ -74,7 +74,7 @@ export default function RadialGainDial({ value, onChange, label = "GAIN", size =
         aria-label={label}
       >
         <circle cx="50" cy="50" r="48" fill="#0F2233" />
-        <circle cx="50" cy="50" r="44.5" fill="none" stroke="rgba(95,212,196,0.16)" strokeWidth="1.2" />
+        <circle cx="50" cy="50" r="44.5" fill="none" stroke="rgba(139,233,253,0.16)" strokeWidth="1.2" />
 
         {/* tick ring */}
         {ticks.map((t, i) => {
@@ -91,7 +91,7 @@ export default function RadialGainDial({ value, onChange, label = "GAIN", size =
               y1={y1}
               x2={x2}
               y2={y2}
-              stroke={i === 0 || i === 10 ? "rgba(230,57,70,0.75)" : "rgba(95,212,196,0.55)"}
+              stroke={i === 0 || i === 10 ? "rgba(255,85,85,0.75)" : "rgba(139,233,253,0.55)"}
               strokeWidth={major ? 1.6 : 0.9}
             />
           );
@@ -104,7 +104,7 @@ export default function RadialGainDial({ value, onChange, label = "GAIN", size =
           r="36"
           pathLength={100}
           fill="none"
-          stroke="rgba(95,212,196,0.16)"
+          stroke="rgba(139,233,253,0.16)"
           strokeWidth="5"
           strokeLinecap="butt"
           transform="rotate(135 50 50)"
@@ -116,7 +116,7 @@ export default function RadialGainDial({ value, onChange, label = "GAIN", size =
           r="36"
           pathLength={100}
           fill="none"
-          stroke="#5FD4C4"
+          stroke="#8BE9FD"
           strokeWidth="5"
           strokeLinecap="butt"
           transform="rotate(135 50 50)"
@@ -125,17 +125,17 @@ export default function RadialGainDial({ value, onChange, label = "GAIN", size =
 
         {/* indicator needle */}
         <line x1="50" y1="50" x2={ix.toFixed(2)} y2={iy.toFixed(2)} stroke="#FBFDFE" strokeWidth="1.8" />
-        <circle cx={ix.toFixed(2)} cy={iy.toFixed(2)} r="2.4" fill="#5FD4C4" />
+        <circle cx={ix.toFixed(2)} cy={iy.toFixed(2)} r="2.4" fill="#8BE9FD" />
 
         {/* center readout */}
-        <text x="50" y="56" textAnchor="middle" fontSize="15" fontWeight="700" fill="#5FD4C4" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
+        <text x="50" y="56" textAnchor="middle" fontSize="15" fontWeight="700" fill="#8BE9FD" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
           {pct}
         </text>
-        <text x="50" y="64" textAnchor="middle" fontSize="5.5" letterSpacing="1.5" fill="rgba(95,212,196,0.6)" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
+        <text x="50" y="64" textAnchor="middle" fontSize="5.5" letterSpacing="1.5" fill="rgba(139,233,253,0.6)" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
           %
         </text>
       </svg>
-      <span className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#45566A]">{label}</span>
+      <span className="font-mono text-[8px] uppercase tracking-[0.22em] text-[#7D8590]">{label}</span>
     </div>
   );
 }

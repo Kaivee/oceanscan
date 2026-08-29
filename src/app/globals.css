@@ -5,70 +5,70 @@
   --font-display: var(--font-space-grotesk);
   --font-mono: var(--font-jetbrains-mono);
 
-  /* ===== Polar Oceanographic palette ===== */
-  /* App background canvas — Glacial Ice */
-  --color-ocean-canvas: #EEF3F5;
-  /* Card / panel surface — Near-White */
-  --color-ocean-card: #FBFDFE;
-  --color-ocean-slate: #FBFDFE;
+  /* ===== Restrained Marine Console palette ===== */
+  /* Main app surface — deep slate graphite / console black */
+  --color-ocean-canvas: #0D1117;
+  /* Card / panel surface — muted technical slate */
+  --color-ocean-card: #161B22;
+  --color-ocean-slate: #161B22;
   /* Panel header strip / inset surface */
-  --color-ocean-surface: #E6EDF1;
-  /* Hairline borders */
-  --color-ocean-border: #D3DEE3;
-  /* Deep Marine Slate — dark sonar console panels ONLY */
-  --color-ocean-console: #0F2233;
-  /* Primary UI & action — Teal-Blue Cobalt */
-  --color-ocean-primary: #0E6BA8;
-  --color-ocean-royal: #0E6BA8;
-  --color-ocean-blue: #0E6BA8;
-  /* Console teal / low-risk-verified on dark wells */
-  --color-ocean-sky: #5FD4C4;
-  --color-ocean-electric: #5FD4C4;
-  /* Hazard / risk scale — reserved for badges, boxes, legends */
-  --color-ocean-emerald: #0E6BA8;   /* verified / low-risk on light surfaces */
-  --color-ocean-green: #0E6BA8;
-  --color-ocean-red: #E63946;       /* coral — high risk */
-  --color-ocean-amber: #C97A12;     /* amber — medium risk */
+  --color-ocean-surface: #1C232D;
+  /* Sonar cavity — ultra-low acoustic bed */
+  --color-ocean-console: #090D12;
+  /* Hairline structural borders */
+  --color-ocean-border: rgba(255, 255, 255, 0.08);
+  /* Active accent / waypoints — Hydrographic Cyan */
+  --color-ocean-primary: #8BE9FD;
+  --color-ocean-royal: #8BE9FD;
+  --color-ocean-sky: #8BE9FD;
+  --color-ocean-electric: #8BE9FD;
+  /* Signal axis — Confidence / Severity ONLY */
+  --color-ocean-high: #FF5555;      /* High / Critical — Coral Signal */
+  --color-ocean-medium: #FFB86C;    /* Medium / Review — Tungsten Amber */
+  --color-ocean-low: #50FA7B;       /* Low / Cleared — Acoustic Green */
+  /* Backward-compatible aliases mapped to the restrained dark palette */
+  --color-ocean-red: #FF5555;
+  --color-ocean-amber: #FFB86C;
+  --color-ocean-green: #50FA7B;
+  --color-ocean-emerald: #50FA7B;
+  --color-ocean-blue: #8BE9FD;
   /* Typography */
-  --color-ocean-text: #10202E;      /* Deep Navy Ink */
-  --color-ocean-muted: #45566A;     /* Slate-Navy secondary */
-  --color-ocean-lavender: #45566A;
+  --color-ocean-text: #E6EDF3;      /* primary off-white */
+  --color-ocean-muted: #7D8590;     /* steel mono gray */
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
   background-color: var(--color-ocean-canvas);
   background-image:
-    /* Chart-paper lat/long hairline grid */
+    /* Faint technical grid on console black */
     repeating-linear-gradient(
       0deg,
-      rgba(16, 32, 46, 0.05) 0px,
-      rgba(16, 32, 46, 0.05) 1px,
+      rgba(139, 233, 253, 0.02) 0px,
+      rgba(139, 233, 253, 0.02) 1px,
       transparent 1px,
       transparent 56px
     ),
     repeating-linear-gradient(
       90deg,
-      rgba(16, 32, 46, 0.05) 0px,
-      rgba(16, 32, 46, 0.05) 1px,
+      rgba(139, 233, 253, 0.02) 0px,
+      rgba(139, 233, 253, 0.02) 1px,
       transparent 1px,
       transparent 56px
-    ),
-    /* Fine matte grain to lift the paper off flat white */
-    radial-gradient(rgba(16, 32, 46, 0.02) 0.7px, transparent 0.7px);
-  background-size: 56px 56px, 56px 56px, 3px 3px;
+    );
+  background-size: 56px 56px, 56px 56px;
   color: var(--color-ocean-text);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
 }
 
 /* Continuous slow breathing glow ring for LIVE hardware pills */
 @keyframes breathe {
-  0%   { box-shadow: 0 0 0 0 rgba(14, 107, 168, 0.3); }
-  70%  { box-shadow: 0 0 0 7px rgba(14, 107, 168, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(14, 107, 168, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(139, 233, 253, 0.35); }
+  70%  { box-shadow: 0 0 0 7px rgba(139, 233, 253, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 233, 253, 0); }
 }
 .breathe {
   animation: breathe 2.6s ease-in-out infinite;
@@ -81,37 +81,37 @@ body {
 }
 
 ::selection {
-  background: rgba(14, 107, 168, 0.25);
+  background: rgba(139, 233, 253, 0.3);
 }
 
-/* Panel inner top hairline — crisp lit edge on light cards */
+/* Panel inner top hairline — crisp lit edge on dark cards */
 .panel {
   border: 1px solid var(--color-ocean-border);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
 }
 
-/* Clean launch canvas — static 36px blueprint grid on glacial ice */
+/* Clean launch canvas — static 36px grid on console black */
 .launch-grid {
-  background-color: #EEF3F5;
+  background-color: #0D1117;
   background-image:
-    linear-gradient(rgba(16, 32, 46, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(16, 32, 46, 0.045) 1px, transparent 1px);
+    linear-gradient(rgba(139, 233, 253, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 233, 253, 0.035) 1px, transparent 1px);
   background-size: 36px 36px;
 }
 
 /* Sonar viewport textures (dark console wells) */
 .sonar-grid {
   background-image:
-    linear-gradient(rgba(95, 212, 196, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(95, 212, 196, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(139, 233, 253, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 233, 253, 0.04) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 
 .scanlines {
   background: repeating-linear-gradient(
     0deg,
-    rgba(95, 212, 196, 0.03) 0px,
-    rgba(95, 212, 196, 0.03) 1px,
+    rgba(139, 233, 253, 0.03) 0px,
+    rgba(139, 233, 253, 0.03) 1px,
     transparent 1px,
     transparent 3px
   );
@@ -165,8 +165,8 @@ input[type="range"] {
   border-radius: 0;
   background: linear-gradient(
     90deg,
-    #0E6BA8 var(--fill, 70%),
-    rgba(16, 32, 46, 0.14) var(--fill, 70%)
+    #8BE9FD var(--fill, 70%),
+    rgba(255, 255, 255, 0.14) var(--fill, 70%)
   );
   cursor: pointer;
 }
@@ -177,23 +177,23 @@ input[type="range"]::-webkit-slider-thumb {
   width: 12px;
   height: 12px;
   border-radius: 0;
-  border: 1px solid #0E6BA8;
-  background: #FBFDFE;
-  box-shadow: 0 0 0 2px rgba(14, 107, 168, 0.15);
+  border: 1px solid #8BE9FD;
+  background: #161B22;
+  box-shadow: 0 0 0 2px rgba(139, 233, 253, 0.15);
   transition: box-shadow 0.15s;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 0 4px rgba(14, 107, 168, 0.28);
+  box-shadow: 0 0 0 4px rgba(139, 233, 253, 0.28);
 }
 
 input[type="range"]::-moz-range-thumb {
   width: 12px;
   height: 12px;
   border-radius: 0;
-  border: 1px solid #0E6BA8;
-  background: #FBFDFE;
-  box-shadow: 0 0 0 2px rgba(14, 107, 168, 0.15);
+  border: 1px solid #8BE9FD;
+  background: #161B22;
+  box-shadow: 0 0 0 2px rgba(139, 233, 253, 0.15);
 }
 
 input[type="range"]::-moz-range-track {
@@ -207,16 +207,16 @@ input[type="range"]::-moz-range-track {
 }
 
 *::-webkit-scrollbar-track {
-  background: rgba(16, 32, 46, 0.04);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(16, 32, 46, 0.18);
+  background: rgba(255, 255, 255, 0.16);
   border-radius: 0;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 32, 46, 0.3);
+  background: rgba(139, 233, 253, 0.4);
 }
 
 /* Comparison slider */
@@ -225,11 +225,11 @@ input[type="range"]::-moz-range-track {
   touch-action: none;
 }
 
-/* Operator verification — teal pulse flash on CONFIRM */
+/* Operator verification — cyan pulse flash on CONFIRM */
 @keyframes verify-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(14, 107, 168, 0.55); }
-  70% { box-shadow: 0 0 0 12px rgba(14, 107, 168, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(14, 107, 168, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(139, 233, 253, 0.55); }
+  70% { box-shadow: 0 0 0 12px rgba(139, 233, 253, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 233, 253, 0); }
 }
 
 .verify-pulse {
@@ -264,21 +264,21 @@ input[type="range"]::-moz-range-track {
 
 /* HUD overlay */
 .hud-text {
-  text-shadow: 0 0 6px rgba(95, 212, 196, 0.45);
+  text-shadow: 0 0 6px rgba(139, 233, 253, 0.45);
 }
 
 /* Gradient border glow */
 .glow-border {
-  box-shadow: 0 0 0 1px rgba(14, 107, 168, 0.14), 0 0 18px rgba(14, 107, 168, 0.06);
+  box-shadow: 0 0 0 1px rgba(139, 233, 253, 0.16), 0 0 18px rgba(139, 233, 253, 0.07);
 }
 
 /* Heatmap overlay */
 .heatmap-overlay {
   background: radial-gradient(
     ellipse at center,
-    rgba(230, 57, 70, 0.35) 0%,
-    rgba(201, 122, 18, 0.22) 35%,
-    rgba(14, 107, 168, 0.12) 65%,
+    rgba(255, 85, 85, 0.35) 0%,
+    rgba(255, 184, 108, 0.22) 35%,
+    rgba(139, 233, 253, 0.12) 65%,
     transparent 100%
   );
   mix-blend-mode: multiply;
@@ -293,10 +293,10 @@ input[type="range"]::-moz-range-track {
   pointer-events: none;
 }
 .chart-marks::before {
-  border-top: 1px solid rgba(16, 32, 46, 0.25);
-  border-bottom: 1px solid rgba(16, 32, 46, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
 }
 .chart-marks::after {
-  border-left: 1px solid rgba(16, 32, 46, 0.2);
-  border-right: 1px solid rgba(16, 32, 46, 0.2);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
 }

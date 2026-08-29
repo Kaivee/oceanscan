@@ -26,9 +26,9 @@ interface ReportTabProps {
 }
 
 const STATUS_LABEL: Record<DetectionStatus, { label: string; cls: string }> = {
-  confirmed: { label: "VERIFIED // NAVAL OP", cls: "text-[#0E6BA8]" },
-  false_positive: { label: "FALSE +", cls: "text-[#E63946]" },
-  pending: { label: "PENDING REVIEW", cls: "text-[#45566A]" },
+  confirmed: { label: "VERIFIED // NAVAL OP", cls: "text-[#8BE9FD]" },
+  false_positive: { label: "FALSE +", cls: "text-[#FF5555]" },
+  pending: { label: "PENDING REVIEW", cls: "text-[#7D8590]" },
 };
 
 export default function ReportTab({
@@ -88,26 +88,26 @@ export default function ReportTab({
       <section className="chart-marks relative border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] px-5 py-4">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <div className="min-w-0">
-            <p className="font-mono text-[9px] uppercase tracking-[0.28em] text-[#45566A]">
+            <p className="font-mono text-[9px] uppercase tracking-[0.28em] text-[#7D8590]">
               Marine Survey Office · Recovery Dispatch
             </p>
-            <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-[#10202E]">
+            <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-[#E6EDF3]">
               HYDROGRAPHIC DISPATCH WORKSHEET
             </h2>
           </div>
           <div className="ml-auto text-right">
-            <p className="font-mono text-[10px] font-bold tabular-nums text-[#0E6BA8]">SHEET 1 OF 1</p>
-            <p className="font-mono text-[8px] uppercase tracking-widest text-[#45566A]">Compiled {generatedAt}</p>
+            <p className="font-mono text-[10px] font-bold tabular-nums text-[#8BE9FD]">SHEET 1 OF 1</p>
+            <p className="font-mono text-[8px] uppercase tracking-widest text-[#7D8590]">Compiled {generatedAt}</p>
           </div>
-          <div className="rotate-2 border-2 border-[#E63946] px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-[#E63946]">
+          <div className="rotate-2 border-2 border-[#FF5555] px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-[#FF5555]">
             OFFICIAL RECORD
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-1 border-t-2 border-[#10202E] pt-2 font-mono text-[9px] uppercase tracking-widest text-[#45566A]">
-          <span>Dispatch <strong className="text-[#10202E]">{dispatchId}</strong></span>
-          <span>Survey <strong className="text-[#10202E]">{surveyId}</strong></span>
-          <span>Vessel <strong className="text-[#10202E]">{vessel}</strong></span>
-          <span>Frames <strong className="text-[#10202E]">{uploadedImageCount}</strong></span>
+        <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-1 border-t-2 border-[#E6EDF3] pt-2 font-mono text-[9px] uppercase tracking-widest text-[#7D8590]">
+          <span>Dispatch <strong className="text-[#E6EDF3]">{dispatchId}</strong></span>
+          <span>Survey <strong className="text-[#E6EDF3]">{surveyId}</strong></span>
+          <span>Vessel <strong className="text-[#E6EDF3]">{vessel}</strong></span>
+          <span>Frames <strong className="text-[#E6EDF3]">{uploadedImageCount}</strong></span>
         </div>
       </section>
 
@@ -116,13 +116,13 @@ export default function ReportTab({
         <section className="min-w-0 overflow-hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
           <div className="flex items-center gap-3 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
             <div className="mr-auto min-w-0">
-              <h3 className="font-display text-sm font-semibold tracking-wide text-[#10202E]">GIS TRACKLINE &amp; ANOMALY MAP</h3>
-              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#45566A]">
+              <h3 className="font-display text-sm font-semibold tracking-wide text-[#E6EDF3]">GIS TRACKLINE &amp; ANOMALY MAP</h3>
+              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#7D8590]">
                 survey trackline · anomaly pins · datum WGS-84
               </p>
             </div>
             {geoBounds && (
-              <span className="hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] px-2 py-1 font-mono text-[9px] tabular-nums text-[#45566A] lg:block">
+              <span className="hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] px-2 py-1 font-mono text-[9px] tabular-nums text-[#7D8590] lg:block">
                 BBOX N {geoBounds.n.toFixed(3)}° · S {geoBounds.s.toFixed(3)}° · E {Math.abs(geoBounds.e).toFixed(3)}°W · W {Math.abs(geoBounds.w).toFixed(3)}°W
               </span>
             )}
@@ -133,8 +133,8 @@ export default function ReportTab({
         {/* Header block — form fields */}
         <section className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
           <div className="border-b border-dashed border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
-            <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#10202E]">DISPATCH HEADER BLOCK</h3>
-            <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#45566A]">operator sign-off · sensor metadata</p>
+            <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#E6EDF3]">DISPATCH HEADER BLOCK</h3>
+            <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#7D8590]">operator sign-off · sensor metadata</p>
           </div>
           <div className="grid grid-cols-1 gap-3 p-4">
             <FormField label="Dispatch ID" value={dispatchId} onChange={setDispatchId} width="w-full" />
@@ -144,12 +144,12 @@ export default function ReportTab({
             <FormField label="Operating Officer" value={operator} onChange={setOperator} width="w-full" withIcon={<Anchor size={10} />} />
 
             <div className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-canvas)] px-2.5 py-2">
-              <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#45566A]">Operator sign-off</p>
+              <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#7D8590]">Operator sign-off</p>
               <div className="mt-1.5 flex items-end gap-2">
-                <span className="mb-[-4px] font-mono text-[10px] leading-none uppercase tracking-widest text-[#0E6BA8]">{operator}</span>
-                <span className="flex-1 border-b border-[#B9C6D2]" />
+                <span className="mb-[-4px] font-mono text-[10px] leading-none uppercase tracking-widest text-[#8BE9FD]">{operator}</span>
+                <span className="flex-1 border-b border-[var(--color-ocean-border)]" />
               </div>
-              <p className="mt-1 font-mono text-[8px] uppercase tracking-widest text-[#45566A]">
+              <p className="mt-1 font-mono text-[8px] uppercase tracking-widest text-[#7D8590]">
                 {confirmedCount} of {targets.length} contacts human-verified
               </p>
             </div>
@@ -157,26 +157,26 @@ export default function ReportTab({
             <div className="mt-1 flex flex-col gap-2">
               <button
                 onClick={() => printSurveySheet(targets, { vessel, surveyId, sensor })}
-                className="flex w-full items-center justify-center gap-2 bg-[#0E6BA8] px-3 py-2.5 font-mono text-[11px] font-bold uppercase tracking-wider text-white transition hover:bg-[#0B5C8F]"
+                className="flex w-full items-center justify-center gap-2 bg-[#8BE9FD] px-3 py-2.5 font-mono text-[11px] font-bold uppercase tracking-wider text-[#0D1117] transition hover:bg-[#0E9BBF]"
               >
                 <FileText size={13} /> Export PDF Survey Sheet
               </button>
               <button
                 onClick={onExportGeojson}
-                className="flex w-full items-center justify-center gap-2 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-3 py-2.5 font-mono text-[11px] font-bold uppercase tracking-wider text-[#10202E] transition hover:bg-[var(--color-ocean-card)]"
+                className="flex w-full items-center justify-center gap-2 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-3 py-2.5 font-mono text-[11px] font-bold uppercase tracking-wider text-[#E6EDF3] transition hover:bg-[var(--color-ocean-card)]"
               >
                 <Braces size={13} /> Download GeoJSON Waypoints
               </button>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => downloadText("oceanscan_hazard_report.csv", toCsv(targets), "text/csv")}
-                  className="inline-flex items-center justify-center gap-1.5 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#45566A] transition hover:text-[#10202E]"
+                  className="inline-flex items-center justify-center gap-1.5 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#7D8590] transition hover:text-[#E6EDF3]"
                 >
                   <FileDown size={12} /> CSV
                 </button>
                 <button
                   onClick={onRetrievalPath}
-                  className="inline-flex items-center justify-center gap-1.5 border border-[#E63946]/40 bg-[#E63946]/5 px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#E63946] transition hover:bg-[#E63946]/10"
+                  className="inline-flex items-center justify-center gap-1.5 border border-[#FF5555]/40 bg-[#FF5555]/5 px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#FF5555] transition hover:bg-[#FF5555]/10"
                 >
                   <Route size={12} /> Retrieval Path
                 </button>
@@ -184,8 +184,8 @@ export default function ReportTab({
             </div>
 
             {geoBounds && (
-              <p className="flex items-start gap-2 border-t border-dashed border-[var(--color-ocean-border)] pt-3 font-mono text-[9px] leading-relaxed text-[#45566A]">
-                <MapPin size={11} className="mt-0.5 shrink-0 text-[#0E6BA8]" />
+              <p className="flex items-start gap-2 border-t border-dashed border-[var(--color-ocean-border)] pt-3 font-mono text-[9px] leading-relaxed text-[#7D8590]">
+                <MapPin size={11} className="mt-0.5 shrink-0 text-[#8BE9FD]" />
                 Geo-boundary N {geoBounds.n.toFixed(3)}° / S {geoBounds.s.toFixed(3)}° / E {Math.abs(geoBounds.e).toFixed(3)}°W / W {Math.abs(geoBounds.w).toFixed(3)}°W · WGS-84.
               </p>
             )}
@@ -197,17 +197,17 @@ export default function ReportTab({
       <section className="overflow-hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
           <div className="mr-auto min-w-0">
-            <h3 className="font-display text-sm font-semibold tracking-wide text-[#10202E]">CLASSIFIED FINDING REGISTRY</h3>
-            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#45566A]">
+            <h3 className="font-display text-sm font-semibold tracking-wide text-[#E6EDF3]">CLASSIFIED FINDING REGISTRY</h3>
+            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#7D8590]">
               {visible.length} / {targets.length} contacts · acoustic dimensions &amp; verification status
             </p>
           </div>
           <div className="flex items-center gap-3">
             <RadialGainDial value={minConf} onChange={setMinConf} label="MIN CONF" size={78} />
             <div className="flex flex-col gap-1 font-mono text-[8px] uppercase tracking-widest">
-              <span className="text-[#45566A]">HIGH <b className="tabular-nums text-[#E63946]">{highCount}</b></span>
-              <span className="text-[#45566A]">MED <b className="tabular-nums text-[#C97A12]">{mediumCount}</b></span>
-              <span className="text-[#45566A]">LOW <b className="tabular-nums text-[#0E6BA8]">{lowCount}</b></span>
+              <span className="text-[#7D8590]">HIGH <b className="tabular-nums text-[#FF5555]">{highCount}</b></span>
+              <span className="text-[#7D8590]">MED <b className="tabular-nums text-[#FFB86C]">{mediumCount}</b></span>
+              <span className="text-[#7D8590]">LOW <b className="tabular-nums text-[#8BE9FD]">{lowCount}</b></span>
             </div>
           </div>
         </div>
@@ -215,7 +215,7 @@ export default function ReportTab({
         <div className="overflow-x-auto">
           <table className="w-full font-mono text-[10px]">
             <thead>
-              <tr className="border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[#45566A] uppercase tracking-wider">
+              <tr className="border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[#7D8590] uppercase tracking-wider">
                 <th className="px-4 py-2 text-left">Target</th>
                 <th className="px-4 py-2 text-left">Class</th>
                 <th className="px-4 py-2 text-left">Conf</th>
@@ -242,21 +242,21 @@ export default function ReportTab({
                       <div className="flex items-center gap-2.5">
                         <SonarCropThumb target={t} size={44} />
                         <div className="leading-tight">
-                          <span className="block font-mono text-[10px] font-bold text-[#0E6BA8]">{t.id}</span>
-                          <span className="block font-mono text-[8px] tabular-nums text-[#45566A]">
+                          <span className="block font-mono text-[10px] font-bold text-[#8BE9FD]">{t.id}</span>
+                          <span className="block font-mono text-[8px] tabular-nums text-[#7D8590]">
                             {t.lat.toFixed(4)}°N · {Math.abs(t.lon).toFixed(4)}°W
                           </span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2 text-[#10202E]">{t.label}</td>
-                    <td className="px-4 py-2 tabular-nums text-[#10202E]">{Math.round(t.confidence * 100)}%</td>
-                    <td className="px-4 py-2 tabular-nums text-[#10202E]">
+                    <td className="px-4 py-2 text-[#E6EDF3]">{t.label}</td>
+                    <td className="px-4 py-2 tabular-nums text-[#E6EDF3]">{Math.round(t.confidence * 100)}%</td>
+                    <td className="px-4 py-2 tabular-nums text-[#E6EDF3]">
                       {t.dims.length.toFixed(1)} × {t.dims.width.toFixed(1)} m
                     </td>
-                    <td className="px-4 py-2 tabular-nums text-[#10202E]">{t.depthM} m</td>
-                    <td className="px-4 py-2 tabular-nums text-[#45566A]">
-                      <MapPin size={10} className="mr-1 inline -translate-y-px text-[#0E6BA8]" />
+                    <td className="px-4 py-2 tabular-nums text-[#E6EDF3]">{t.depthM} m</td>
+                    <td className="px-4 py-2 tabular-nums text-[#7D8590]">
+                      <MapPin size={10} className="mr-1 inline -translate-y-px text-[#8BE9FD]" />
                       {t.lat.toFixed(4)}, {t.lon.toFixed(4)}
                     </td>
                     <td className="px-4 py-2">
@@ -281,21 +281,21 @@ export default function ReportTab({
         </div>
 
         {visible.length === 0 && (
-          <p className="border-t border-[var(--color-ocean-border)] px-4 py-8 text-center font-mono text-[11px] text-[#45566A]">
+          <p className="border-t border-[var(--color-ocean-border)] px-4 py-8 text-center font-mono text-[11px] text-[#7D8590]">
             No objects above {minConf}% confidence — lower the gate dial.
           </p>
         )}
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)]/50 px-4 py-2 font-mono text-[9px] text-[#45566A]">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)]/50 px-4 py-2 font-mono text-[9px] text-[#7D8590]">
           <span className="uppercase tracking-wider">Showing {visible.length} / {targets.length} contacts</span>
           <span>AI model v3.0.0 · TensorRT INT8 edge inference</span>
           <span className="ml-auto flex items-center gap-1.5">
-            <Ship size={10} className="text-[#0E6BA8]" /> Survey {surveyId} · {vessel}
+            <Ship size={10} className="text-[#8BE9FD]" /> Survey {surveyId} · {vessel}
           </span>
         </div>
       </section>
 
-      <p className="font-sans text-[11px] text-[#45566A]">
+      <p className="font-sans text-[11px] text-[#7D8590]">
         Based on USGS Open-File Report 2008-1288, sidescan survey 07011 off Martha&apos;s Vineyard, MA. Real WGS-84 positions; high-severity contacts must still be verified by ROV before recovery operations.
       </p>
     </div>
@@ -317,14 +317,14 @@ function FormField({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 flex items-center gap-1.5 font-mono text-[8px] uppercase tracking-[0.18em] text-[#45566A]">
+      <span className="mb-1 flex items-center gap-1.5 font-mono text-[8px] uppercase tracking-[0.18em] text-[#7D8590]">
         {withIcon}
         {label}
       </span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`${width} border-b border-[var(--color-ocean-border)] bg-transparent py-1 font-mono text-[11px] text-[#10202E] focus:border-[#0E6BA8] focus:outline-none`}
+        className={`${width} border-b border-[var(--color-ocean-border)] bg-transparent py-1 font-mono text-[11px] text-[#E6EDF3] focus:border-[#8BE9FD] focus:outline-none`}
       />
     </label>
   );
@@ -382,10 +382,10 @@ function TracklineMap({
               y1={PAD}
               x2={proj(0, lo).x}
               y2={H - PAD}
-              stroke="rgba(16,32,46,0.12)"
+              stroke="rgba(139,233,253,0.08)"
               strokeWidth="1"
             />
-            <text x={proj(0, lo).x} y={H - PAD + 12} textAnchor="middle" fontSize="7.5" fill="#45566A" style={{ fontFamily: "monospace" }}>
+            <text x={proj(0, lo).x} y={H - PAD + 12} textAnchor="middle" fontSize="7.5" fill="#7D8590" style={{ fontFamily: "monospace" }}>
               {Math.abs(lo).toFixed(3)}°W
             </text>
           </g>
@@ -397,23 +397,23 @@ function TracklineMap({
               y1={proj(la, 0).y}
               x2={W - PAD}
               y2={proj(la, 0).y}
-              stroke="rgba(16,32,46,0.12)"
+              stroke="rgba(139,233,253,0.08)"
               strokeWidth="1"
             />
-            <text x={PAD - 4} y={proj(la, 0).y + 2.5} textAnchor="end" fontSize="7.5" fill="#45566A" style={{ fontFamily: "monospace" }}>
+            <text x={PAD - 4} y={proj(la, 0).y + 2.5} textAnchor="end" fontSize="7.5" fill="#7D8590" style={{ fontFamily: "monospace" }}>
               {la.toFixed(3)}°N
             </text>
           </g>
         ))}
 
-        <polyline points={xs.join(" ")} fill="none" stroke="#4A6FA5" strokeWidth="1" opacity="0.7" strokeDasharray="5 4" />
+        <polyline points={xs.join(" ")} fill="none" stroke="#8BE9FD" strokeWidth="1" opacity="0.7" strokeDasharray="5 4" />
         {(() => {
           const s = TRAJECTORY[0];
           const p = proj(s[0], s[1]);
           return (
             <g>
-              <circle cx={p.x} cy={p.y} r="3" fill="#0E6BA8" stroke="#FBFDFE" strokeWidth="1" />
-              <text x={p.x + 5} y={p.y - 5} fontSize="7" fill="#0E6BA8" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
+              <circle cx={p.x} cy={p.y} r="3" fill="#8BE9FD" stroke="#FBFDFE" strokeWidth="1" />
+              <text x={p.x + 5} y={p.y - 5} fontSize="7" fill="#8BE9FD" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
                 start
               </text>
             </g>
@@ -439,13 +439,13 @@ function TracklineMap({
 
         {/* Scale bar + north arrow */}
         <g>
-          <line x1={W - PAD - 70} y1={H - PAD - 8} x2={W - PAD} y2={H - PAD - 8} stroke="#10202E" strokeWidth="2" />
-          <text x={W - PAD - 35} y={H - PAD + 4} textAnchor="middle" fontSize="7" fill="#45566A" style={{ fontFamily: "monospace" }}>
+          <line x1={W - PAD - 70} y1={H - PAD - 8} x2={W - PAD} y2={H - PAD - 8} stroke="#E6EDF3" strokeWidth="2" />
+          <text x={W - PAD - 35} y={H - PAD + 4} textAnchor="middle" fontSize="7" fill="#7D8590" style={{ fontFamily: "monospace" }}>
             1 KM
           </text>
           <g transform={`translate(${W - PAD - 14} ${PAD + 14})`}>
-            <path d="M0 10 L0 -8 M-4 -3 L0 -10 L4 -3" fill="none" stroke="#10202E" strokeWidth="1.4" />
-            <text x="0" y={-13} textAnchor="middle" fontSize="7.5" fill="#10202E" style={{ fontFamily: "monospace" }}>
+            <path d="M0 10 L0 -8 M-4 -3 L0 -10 L4 -3" fill="none" stroke="#E6EDF3" strokeWidth="1.4" />
+            <text x="0" y={-13} textAnchor="middle" fontSize="7.5" fill="#E6EDF3" style={{ fontFamily: "monospace" }}>
               N
             </text>
           </g>
@@ -456,7 +456,7 @@ function TracklineMap({
           {(["high", "medium", "low"] as const).map((sev, i) => (
             <g key={sev} transform={`translate(${i * 78} 0)`}>
               <rect x="0" y="-6" width="8" height="8" transform="rotate(45 4 -2)" fill={SEVERITY_META[sev].stroke} />
-              <text x="13" y="1.5" fontSize="8" fill="#45566A">
+              <text x="13" y="1.5" fontSize="8" fill="#7D8590">
                 {SEVERITY_META[sev].label}
               </text>
             </g>
