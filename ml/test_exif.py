@@ -35,10 +35,27 @@ def test_dms_malformed_returns_none():
     assert _dms_to_decimal("garbage", "N") is None
 
 
+def test_dms_float_triple():
+    assert abs(_dms_to_decimal((41.0, 18.0, 19.0), "N") - 41.30527777) < 1e-4
+    assert abs(_dms_to_decimal((70.0, 33.0, 22.32), "W") - -70.5562) < 1e-4
+
+
+def test_geotagged_jpeg_returns_coords():
+    p = Path("data/geotagged/marine-debris-aris3k-834_geotagged.jpg")
+    if not p.exists():
+        return
+    gps = get_gps_from_bytes(p.read_bytes())
+    assert gps is not None, "expected geotag from geotagged jpeg"
+    assert abs(gps["latitude"] - 41.3081) < 1e-3
+    assert abs(gps["longitude"] - -70.5562) < 1e-3
+
+
 if __name__ == "__main__":
     test_untagged_returns_none()
     test_real_untagged_aris3k_returns_none()
     test_dms_north_west()
     test_dms_south_east_negative_positive()
     test_dms_malformed_returns_none()
+    test_dms_float_triple()
+    test_geotagged_jpeg_returns_coords()
     print("ALL EXIF TESTS PASSED")

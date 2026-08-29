@@ -9,13 +9,34 @@ from PIL.ExifTags import GPSTAGS
 GPS_IFD_TAG = 34853
 
 
-def _dms_to_decimal(value, ref: str):
-    """Convert a DMS rational tuple plus hemisphere ref to decimal degrees."""
+def _component_to_float(component):
+    """Resolve a DMS component that may be a (num, den) rational, an
+    IFDRational/Fraction, or a plain float."""
+    if isinstance(component, (tuple, list)):
+        try:
+            num, den = component[0], component[1]
+            return num / den
+        except (TypeError, IndexError, ZeroDivisionError):
+            return None
     try:
-        deg = value[0][0] / value[0][1]
-        mn = value[1][0] / value[1][1]
-        sec = value[2][0] / value[2][1]
-    except (TypeError, IndexError, ZeroDivisionError):
+        return float(component)
+    except (TypeError, ValueError):
+        return None
+
+
+def _dms_to_decimal(value, ref: str):
+    """Convert a DMS triple plus hemisphere ref to decimal degrees.
+
+    Accepts both rational tuples ((num, den), ...) as produced by some
+    readers and pre-collapsed floats (deg, min, sec) as produced by others.
+    """
+    try:
+        deg = _component_to_float(value[0])
+        mn = _component_to_float(value[1])
+        sec = _component_to_float(value[2])
+    except (TypeError, IndexError):
+        return None
+    if deg is None or mn is None or sec is None:
         return None
     decimal = deg + mn / 60 + sec / 3600
     return -decimal if ref in ("S", "W") else decimal
