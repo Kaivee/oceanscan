@@ -38,6 +38,7 @@ from src.preprocessing.acoustic_processor import (
     reduce_speckle,
     SUPPORTED_EXTENSIONS,
 )
+from src.preprocessing.exif import get_gps_from_bytes
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("oceanscan.api")
@@ -169,6 +170,8 @@ async def detect(
         if len(contents) == 0:
             raise HTTPException(status_code=400, detail="Empty file uploaded.")
 
+        geotag = get_gps_from_bytes(contents)
+
         nparr = np.frombuffer(contents, np.uint8)
         raw_image = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
         if raw_image is None:
@@ -236,6 +239,9 @@ async def detect(
             "confidence_threshold": confidence_threshold,
             "clahe_enabled": clahe_enabled,
             "total_detections": len(detections),
+            "latitude": geotag["latitude"] if geotag else None,
+            "longitude": geotag["longitude"] if geotag else None,
+            "geotag_source": "exif" if geotag else "none",
         },
     }
 
