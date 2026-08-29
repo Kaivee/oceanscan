@@ -118,7 +118,7 @@ export default function ReportTab({
             <div className="mr-auto min-w-0">
               <h3 className="font-display text-sm font-semibold tracking-wide text-[#10202E]">GIS TRACKLINE &amp; ANOMALY MAP</h3>
               <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#45566A]">
-                trajectory plot · waypoint pins · datum WGS-84
+                survey trackline · anomaly pins · datum WGS-84
               </p>
             </div>
             {geoBounds && (
@@ -354,7 +354,12 @@ function TracklineMap({
       x: PAD + ((lon - minLon) / (maxLon - minLon)) * (W - 2 * PAD),
       y: PAD + ((maxLat - lat) / (maxLat - minLat)) * (H - 2 * PAD),
     });
-    const xs = TRAJECTORY.map(([la, lo]) => {
+    // Decimate the dense 1-minute GPS fixes so the survey path reads as a
+    // clean lawnmower grid instead of a tangle of waypoint dots. Always keep
+    // the final fix so the track terminates correctly.
+    const step = Math.max(1, Math.floor(TRAJECTORY.length / 18));
+    const thinned = TRAJECTORY.filter((_, i) => i % step === 0 || i === TRAJECTORY.length - 1);
+    const xs = thinned.map(([la, lo]) => {
       const p = proj(la, lo);
       return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
     });
@@ -401,11 +406,19 @@ function TracklineMap({
           </g>
         ))}
 
-        <polyline points={xs.join(" ")} fill="none" stroke="#0E6BA8" strokeWidth="1.8" opacity="0.85" />
-        {TRAJECTORY.map(([la, lo], i) => {
-          const p = proj(la, lo);
-          return <circle key={`wp-${i}`} cx={p.x} cy={p.y} r="2" fill="#45566A" opacity={0.7} />;
-        })}
+        <polyline points={xs.join(" ")} fill="none" stroke="#4A6FA5" strokeWidth="1" opacity="0.7" strokeDasharray="5 4" />
+        {(() => {
+          const s = TRAJECTORY[0];
+          const p = proj(s[0], s[1]);
+          return (
+            <g>
+              <circle cx={p.x} cy={p.y} r="3" fill="#0E6BA8" stroke="#FBFDFE" strokeWidth="1" />
+              <text x={p.x + 5} y={p.y - 5} fontSize="7" fill="#0E6BA8" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
+                start
+              </text>
+            </g>
+          );
+        })()}
 
         {ys.map((p, i) => {
           const t = targets[i];
