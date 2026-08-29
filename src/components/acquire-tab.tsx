@@ -33,6 +33,9 @@ interface LogEntry {
   target: SonarTarget;
 }
 
+let _logSeq = 0;
+const nextLogKey = () => ++_logSeq;
+
 interface AcquireTabProps {
   onReveal: (id: string) => void;
   onComplete: () => void;
@@ -283,7 +286,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
         if (revealedRun.includes(t.id)) continue;
         if (sweepX >= t.box.x * (CANVAS_W / 100) + 12) {
           clockOffset += 18 + Math.floor(Math.random() * 17);
-          const entry: LogEntry = { key: Date.now() + log.length, time: fmtClock(clockOffset), target: t as SonarTarget };
+          const entry: LogEntry = { key: nextLogKey(), time: fmtClock(clockOffset), target: t as SonarTarget };
           setLog((l) => [...l, entry]);
           setRevealedRun((r) => [...r, t.id]);
           onReveal(t.id);
@@ -297,7 +300,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
       }
     };
     rafRef.current = requestAnimationFrame(frame);
-  }, [onReset, onReveal, finishRun, sortedBySweep, log.length, revealedRun]);
+  }, [onReset, onReveal, finishRun, sortedBySweep, revealedRun]);
 
   // File ingestion: ping rows stream top→bottom as the .XTF/.JSF parse
   // advances; hard stop at 100% freezes the assembled frame.
@@ -343,7 +346,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
         if (revealedRun.includes(t.id)) continue;
         if (recY >= ((t.box.y + t.box.h / 2) / 100) * CANVAS_H) {
           clockOffset += 12 + Math.floor(Math.random() * 12);
-          const entry: LogEntry = { key: Date.now() + log.length, time: fmtClock(clockOffset), target: t as SonarTarget };
+          const entry: LogEntry = { key: nextLogKey(), time: fmtClock(clockOffset), target: t as SonarTarget };
           setLog((l) => [...l, entry]);
           setRevealedRun((r) => [...r, t.id]);
           onReveal(t.id);
@@ -357,7 +360,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
       }
     };
     rafRef.current = requestAnimationFrame(frame);
-  }, [pendingUpload, onReset, onReveal, finishRun, sortedByDepth, log.length, revealedRun]);
+  }, [pendingUpload, onReset, onReveal, finishRun, sortedByDepth, revealedRun]);
 
   useEffect(() => {
     let buffer = "";

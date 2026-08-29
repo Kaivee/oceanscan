@@ -260,7 +260,7 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
         <input
           ref={inputRef}
           type="file"
-          accept=".xtf,.jsf,.png"
+          accept=".xtf,.jsf,.png,.jpg,.jpeg,.tiff,.tif"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];

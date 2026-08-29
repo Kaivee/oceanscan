@@ -56,12 +56,12 @@ export default function LaunchScreen({ onFileDetect }: LaunchScreenProps) {
               {dragOver ? "Release to ingest frame" : "Drop sonar frame"}
             </p>
             <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#45566A]">
-              .XTF · .JSF · .TIFF · .PNG
+              .XTF · .JSF · .TIFF · .PNG · .JPG
             </p>
             <input
               ref={fileRef}
               type="file"
-              accept=".xtf,.jsf,.tiff,.tif,.png"
+              accept=".xtf,.jsf,.tiff,.tif,.png,.jpg,.jpeg"
               className="hidden"
               onChange={handleFileInput}
             />
