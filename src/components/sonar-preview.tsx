@@ -69,7 +69,7 @@ export function paintIdleSonar(ctx: CanvasRenderingContext2D, w = CANVAS_W, h = 
   }
 
   // Coordinate graticules — fine grid markings
-  ctx.strokeStyle = "rgba(42,217,248,0.12)";
+  ctx.strokeStyle = "rgba(95,212,196,0.12)";
   ctx.lineWidth = 1;
   for (let gx = 0; gx <= w; gx += w / 8) {
     ctx.beginPath();
@@ -85,7 +85,7 @@ export function paintIdleSonar(ctx: CanvasRenderingContext2D, w = CANVAS_W, h = 
   }
 
   // Crosshair + coordinate readout
-  ctx.strokeStyle = "rgba(42,217,248,0.28)";
+  ctx.strokeStyle = "rgba(95,212,196,0.28)";
   ctx.lineWidth = 1;
   ctx.setLineDash([6, 6]);
   ctx.beginPath();
@@ -96,7 +96,7 @@ export function paintIdleSonar(ctx: CanvasRenderingContext2D, w = CANVAS_W, h = 
   ctx.stroke();
   ctx.setLineDash([]);
 
-  ctx.fillStyle = "rgba(42,217,248,0.55)";
+  ctx.fillStyle = "rgba(95,212,196,0.55)";
   ctx.font = "12px monospace";
   ctx.textAlign = "center";
   ctx.fillText("15°24'32\"N / 73°47'20\"E", w / 2, h / 2 - 14);

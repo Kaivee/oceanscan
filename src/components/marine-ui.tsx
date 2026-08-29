@@ -16,7 +16,7 @@ export function SonarPingRipple({ className = "" }: { className?: string }) {
 
 export function TechnicalGrid() {
   return (
-    <div className="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(rgba(56,189,248,0.15)_1px,transparent_1px)] [background-size:20px_20px]">
+    <div className="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(rgba(95,212,196,0.15)_1px,transparent_1px)] [background-size:20px_20px]">
       <div className="absolute top-2 left-2 font-mono text-[9px] text-[var(--color-ocean-sky)]/60">
         {"15°26'00\"N | 73°46'00\"E"}
       </div>

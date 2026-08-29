@@ -49,7 +49,7 @@ function generateMockDetections(): ApiDetection[] {
 interface UploadModalProps {
   open: boolean;
   onClose: () => void;
-  onDetect: (response: ApiResponse, imageUrl: string, fileName: string) => void;
+  onDetect: (response: ApiResponse, imageUrl: string, fileName: string, fileSizeBytes?: number) => void;
   initialFile?: File | null;
 }
 
@@ -115,7 +115,7 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
         setProgress(100);
         setDetectionCount(data.detections.length);
         setPhase("done");
-        onDetect(data, imageUrl, file.name);
+        onDetect(data, imageUrl, file.name, file.size);
       } catch (err) {
         if (timerRef.current) clearInterval(timerRef.current);
         setError(err instanceof Error ? err.message : "Failed to process file");

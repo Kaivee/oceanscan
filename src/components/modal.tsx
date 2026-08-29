@@ -23,14 +23,14 @@ export default function Modal({ open, onClose, title, subtitle, icon, children, 
       aria-modal="true"
     >
       <div
-        className={`relative flex max-h-[85vh] w-full flex-col overflow-hidden rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] shadow-2xl ${
+        className={`relative flex max-h-[85vh] w-full flex-col overflow-hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] shadow-2xl ${
           wide ? "max-w-3xl" : "max-w-lg"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-5 py-4">
           {icon ? (
-            <span className="flex h-8 w-8 items-center justify-center rounded border border-[var(--color-ocean-emerald)]/30 bg-[var(--color-ocean-emerald)]/10 text-[var(--color-ocean-emerald)]">
+            <span className="flex h-8 w-8 items-center justify-center border border-[var(--color-ocean-emerald)]/30 bg-[var(--color-ocean-emerald)]/10 text-[var(--color-ocean-emerald)]">
               {icon}
             </span>
           ) : null}

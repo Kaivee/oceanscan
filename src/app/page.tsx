@@ -14,6 +14,7 @@ import type { TabKey } from "@/components/tab-bar";
 export interface PendingUpload {
   imageUrl: string;
   fileName: string;
+  fileSizeBytes?: number;
   response: ApiResponse;
   targets: SonarTarget[];
 }
@@ -44,7 +45,7 @@ export default function Home() {
     setSelectedId(id);
   };
 
-  const handleDetect = useCallback((response: ApiResponse, imageUrl: string, fileName: string) => {
+  const handleDetect = useCallback((response: ApiResponse, imageUrl: string, fileName: string, fileSizeBytes?: number) => {
     const offset = apiTargets.length;
     const newTargets = response.detections.map((det, i) =>
       apiDetectionToTarget(det, offset + i + 1, response.metadata, imageUrl, fileName)
@@ -53,7 +54,7 @@ export default function Home() {
     setRevealedIds((prev) => [...prev, ...newTargets.map((t) => t.id)]);
     setUploadedImages((prev) => [...prev, { name: fileName, url: imageUrl, targetCount: response.detections.length }]);
     setSelectedImageUrl(imageUrl);
-    setPendingUpload({ imageUrl, fileName, response, targets: newTargets });
+    setPendingUpload({ imageUrl, fileName, fileSizeBytes, response, targets: newTargets });
     setShowUpload(false);
     setActiveSurvey(true);
     setTab("acquire");
@@ -135,6 +136,7 @@ export default function Home() {
         onTabChange={handleTabChange}
         scanDone={scanDone}
         foundCount={revealedIds.length}
+        surveyName={pendingUpload?.fileName ?? null}
       />
 
       <main className="mx-auto w-full max-w-[1440px] flex-1 px-3 py-3 sm:px-4">

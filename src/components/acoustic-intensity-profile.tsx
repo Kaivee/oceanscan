@@ -122,7 +122,7 @@ export default function AcousticIntensityProfile({ hover, targets }: AcousticInt
           RANGE →
         </text>
 
-        <path d={lineD} fill="none" stroke="#2AD9F8" strokeWidth="1.4" opacity="0.85" />
+        <path d={lineD} fill="none" stroke="#5FD4C4" strokeWidth="1.4" opacity="0.85" />
 
         {/* Target zones shading */}
         {zones.map((z) => {
@@ -135,11 +135,11 @@ export default function AcousticIntensityProfile({ hover, targets }: AcousticInt
                 y1={PAD_T}
                 x2={x}
                 y2={H - PAD_B}
-                stroke={active ? "rgba(245,158,11,0.8)" : "rgba(42,217,248,0.3)"}
+                stroke={active ? "rgba(201,122,18,0.8)" : "rgba(95,212,196,0.3)"}
                 strokeWidth={active ? 1.4 : 1}
                 strokeDasharray="3 3"
               />
-              <text x={x + 3} y={PAD_T + 4} fontSize="7" fill={active ? "rgba(245,158,11,0.9)" : "rgba(42,217,248,0.65)"} fontFamily="monospace">
+              <text x={x + 3} y={PAD_T + 4} fontSize="7" fill={active ? "rgba(201,122,18,0.9)" : "rgba(95,212,196,0.65)"} fontFamily="monospace">
                 {z.label}
               </text>
             </g>
@@ -147,7 +147,7 @@ export default function AcousticIntensityProfile({ hover, targets }: AcousticInt
         })}
 
         {cursorX !== null && (
-          <line x1={cursorX} y1={PAD_T} x2={cursorX} y2={H - PAD_B} stroke="rgba(245,158,11,0.9)" strokeWidth="1.2" />
+          <line x1={cursorX} y1={PAD_T} x2={cursorX} y2={H - PAD_B} stroke="rgba(201,122,18,0.9)" strokeWidth="1.2" />
         )}
       </svg>
     </div>

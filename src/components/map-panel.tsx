@@ -89,8 +89,8 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
             const p = proj(lat, LON_MIN);
             return (
               <g key={lat}>
-                <line x1={PAD} y1={p.y} x2={W - PAD} y2={p.y} stroke="rgba(56,189,248,0.08)" strokeWidth="1" />
-                <text x={6} y={p.y + 3} fontSize="8" fill="rgba(56,189,248,0.4)" fontFamily="monospace">
+                <line x1={PAD} y1={p.y} x2={W - PAD} y2={p.y} stroke="rgba(95,212,196,0.08)" strokeWidth="1" />
+                <text x={6} y={p.y + 3} fontSize="8" fill="rgba(95,212,196,0.4)" fontFamily="monospace">
                   {lat.toFixed(2)}°N
                 </text>
               </g>
@@ -100,8 +100,8 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
             const p = proj(LAT_MIN, lon);
             return (
               <g key={lon}>
-                <line x1={p.x} y1={PAD} x2={p.x} y2={H - PAD} stroke="rgba(56,189,248,0.08)" strokeWidth="1" />
-                <text x={p.x - 16} y={H - PAD + 12} fontSize="8" fill="rgba(56,189,248,0.4)" fontFamily="monospace">
+                <line x1={p.x} y1={PAD} x2={p.x} y2={H - PAD} stroke="rgba(95,212,196,0.08)" strokeWidth="1" />
+                <text x={p.x - 16} y={H - PAD + 12} fontSize="8" fill="rgba(95,212,196,0.4)" fontFamily="monospace">
                   {lon.toFixed(2)}°E
                 </text>
               </g>
@@ -111,25 +111,25 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
           <path
             d={`M${W},${H * 0.28} C ${W * 0.93},${H * 0.22} ${W * 0.88},${H * 0.12} ${W * 0.9},0 L ${W},0 Z`}
             fill="#0D1520"
-            stroke="rgba(56,189,248,0.2)"
+            stroke="rgba(95,212,196,0.2)"
             strokeWidth="1"
           />
-          <text x={W - 60} y={24} fontSize="8" fill="rgba(56,189,248,0.5)" fontFamily="monospace">
+          <text x={W - 60} y={24} fontSize="8" fill="rgba(95,212,196,0.5)" fontFamily="monospace">
             GOA COAST
           </text>
 
-          <path d="M60,180 C 220,240 420,300 620,330 C 690,342 730,360 750,392" fill="none" stroke="rgba(56,189,248,0.15)" strokeWidth="1" strokeDasharray="6 6" />
-          <path d="M50,340 C 240,380 480,430 700,470 C 730,476 745,484 752,496" fill="none" stroke="rgba(56,189,248,0.15)" strokeWidth="1" strokeDasharray="6 6" />
-          <text x="66" y="172" fontSize="8" fill="rgba(56,189,248,0.35)" fontFamily="monospace">−40 m</text>
-          <text x="56" y="332" fontSize="8" fill="rgba(56,189,248,0.35)" fontFamily="monospace">−80 m</text>
+          <path d="M60,180 C 220,240 420,300 620,330 C 690,342 730,360 750,392" fill="none" stroke="rgba(95,212,196,0.15)" strokeWidth="1" strokeDasharray="6 6" />
+          <path d="M50,340 C 240,380 480,430 700,470 C 730,476 745,484 752,496" fill="none" stroke="rgba(95,212,196,0.15)" strokeWidth="1" strokeDasharray="6 6" />
+          <text x="66" y="172" fontSize="8" fill="rgba(95,212,196,0.35)" fontFamily="monospace">−40 m</text>
+          <text x="56" y="332" fontSize="8" fill="rgba(95,212,196,0.35)" fontFamily="monospace">−80 m</text>
 
-          <path d={pathD} fill="none" stroke="rgba(56,189,248,0.5)" strokeWidth="1.5" strokeDasharray="8 5" markerEnd="url(#arrowInk)" />
+          <path d={pathD} fill="none" stroke="rgba(95,212,196,0.5)" strokeWidth="1.5" strokeDasharray="8 5" markerEnd="url(#arrowInk)" />
           {(() => {
             const s = trajectoryPts[0];
             return (
               <>
-                <circle cx={s.x} cy={s.y} r="4" fill="#080E18" stroke="rgba(56,189,248,0.6)" strokeWidth="1.5" />
-                <text x={s.x - 50} y={s.y - 10} fontSize="9" fill="rgba(56,189,248,0.6)" fontFamily="monospace">
+                <circle cx={s.x} cy={s.y} r="4" fill="#080E18" stroke="rgba(95,212,196,0.6)" strokeWidth="1.5" />
+                <text x={s.x - 50} y={s.y - 10} fontSize="9" fill="rgba(95,212,196,0.6)" fontFamily="monospace">
                   Launch · MSV Sagar-Dhwani
                 </text>
               </>
@@ -166,15 +166,15 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
           })}
 
           <g transform={`translate(${W - 52},${H - 56})`}>
-            <circle r="18" fill="rgba(8,14,24,0.8)" stroke="rgba(56,189,248,0.3)" strokeWidth="1" />
-            <path d="M0,-12 L4,4 L0,1 L-4,4 Z" fill="rgba(56,189,248,0.6)" />
-            <text y="-24" fontSize="9" textAnchor="middle" fill="rgba(56,189,248,0.6)" fontFamily="monospace" fontWeight="bold">N</text>
+            <circle r="18" fill="rgba(8,14,24,0.8)" stroke="rgba(95,212,196,0.3)" strokeWidth="1" />
+            <path d="M0,-12 L4,4 L0,1 L-4,4 Z" fill="rgba(95,212,196,0.6)" />
+            <text y="-24" fontSize="9" textAnchor="middle" fill="rgba(95,212,196,0.6)" fontFamily="monospace" fontWeight="bold">N</text>
           </g>
           <g transform={`translate(${PAD},${H - 22})`}>
-            <line x1="0" y1="0" x2="48" y2="0" stroke="rgba(56,189,248,0.4)" strokeWidth="1.2" />
-            <line x1="0" y1="-3" x2="0" y2="3" stroke="rgba(56,189,248,0.4)" strokeWidth="1.2" />
-            <line x1="48" y1="-3" x2="48" y2="3" stroke="rgba(56,189,248,0.4)" strokeWidth="1.2" />
-            <text x="56" y="3" fontSize="8" fill="rgba(56,189,248,0.4)" fontFamily="monospace">≈ 500 m</text>
+            <line x1="0" y1="0" x2="48" y2="0" stroke="rgba(95,212,196,0.4)" strokeWidth="1.2" />
+            <line x1="0" y1="-3" x2="0" y2="3" stroke="rgba(95,212,196,0.4)" strokeWidth="1.2" />
+            <line x1="48" y1="-3" x2="48" y2="3" stroke="rgba(95,212,196,0.4)" strokeWidth="1.2" />
+            <text x="56" y="3" fontSize="8" fill="rgba(95,212,196,0.4)" fontFamily="monospace">≈ 500 m</text>
           </g>
         </svg>
 

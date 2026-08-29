@@ -43,13 +43,13 @@ export function GeojsonModal({
       icon={<Braces size={15} />}
     >
       <div className="p-5">
-        <pre className="max-h-[52vh] overflow-auto rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-slate)] p-4 font-mono text-[10px] leading-relaxed text-[var(--color-ocean-sky)]/80">
+        <pre className="max-h-[52vh] overflow-auto border border-[var(--color-ocean-border)] bg-[var(--color-ocean-console)] p-4 font-mono text-[10px] leading-relaxed text-[var(--color-ocean-sky)]/80">
           {payload}
         </pre>
         <div className="mt-4 flex gap-2">
           <button
             onClick={copy}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-sm border border-[var(--color-ocean-border)] bg-transparent py-2.5 font-mono text-[11px] font-bold text-[var(--color-ocean-text)] transition hover:bg-[var(--color-ocean-surface)]"
+            className="inline-flex flex-1 items-center justify-center gap-2 border border-[var(--color-ocean-border)] bg-transparent py-2.5 font-mono text-[11px] font-bold text-[var(--color-ocean-text)] transition hover:bg-[var(--color-ocean-surface)]"
           >
             {copied ? <Check size={13} className="text-[var(--color-ocean-emerald)]" /> : <Copy size={13} />}
             {copied ? "Copied!" : "Copy payload"}
@@ -58,7 +58,7 @@ export function GeojsonModal({
             onClick={() =>
               downloadText("oceanscan_hazard_export.geojson", payload, "application/geo+json")
             }
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-sm bg-[#3709A5] py-2.5 font-mono text-[11px] font-bold text-white transition hover:bg-[#4a12c9]"
+            className="inline-flex flex-1 items-center justify-center gap-2 border border-[#0E6BA8] bg-[#0E6BA8] py-2.5 font-mono text-[11px] font-bold text-white transition hover:bg-[#0B5C8F]"
           >
             <Braces size={13} /> Download .geojson
           </button>
@@ -98,9 +98,9 @@ export function RetrievalModal({
             return (
               <li
                 key={t.id}
-                className="flex items-center gap-3 rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-3 py-2.5 transition-colors hover:border-[var(--color-ocean-muted)]/30"
+                className="flex items-center gap-3 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-3 py-2.5 transition-colors hover:border-[var(--color-ocean-muted)]/30"
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border border-[var(--color-ocean-sky)]/30 bg-[var(--color-ocean-sky)]/10 font-mono text-[10px] font-bold text-[var(--color-ocean-sky)]">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-[var(--color-ocean-sky)]/30 bg-[var(--color-ocean-sky)]/10 font-mono text-[10px] font-bold text-[var(--color-ocean-sky)]">
                   {i + 1}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -128,7 +128,7 @@ export function RetrievalModal({
           <Stat label="Waypoints" value={`${route.order.length}`} />
         </div>
 
-        <p className="mt-4 flex items-start gap-2 rounded-sm border border-[var(--color-ocean-amber)]/30 bg-[var(--color-ocean-amber)]/5 p-3 font-mono text-[11px] leading-relaxed text-[var(--color-ocean-amber)]/80">
+        <p className="mt-4 flex items-start gap-2 border border-[var(--color-ocean-amber)]/30 bg-[var(--color-ocean-amber)]/5 p-3 font-mono text-[11px] leading-relaxed text-[var(--color-ocean-amber)]/80">
           <Waypoints size={13} className="mt-0.5 shrink-0" />
           High-severity contacts are weighted first; remaining legs minimise transit distance.
           Confirm bottom conditions with ROV sonar before hook deployment.
@@ -140,7 +140,7 @@ export function RetrievalModal({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-sm border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] px-3 py-2.5 text-center transition-colors hover:border-[var(--color-ocean-muted)]/30">
+    <div className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] px-3 py-2.5 text-center transition-colors hover:border-[var(--color-ocean-muted)]/30">
       <p className="font-mono text-sm font-bold tabular-nums text-[var(--color-ocean-text)]">{value}</p>
       <p className="mt-0.5 font-mono text-[8px] uppercase tracking-widest text-[var(--color-ocean-muted)]">{label}</p>
     </div>

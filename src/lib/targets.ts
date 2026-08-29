@@ -104,8 +104,8 @@ export const SEVERITY_META: Record<
     label: "HIGH",
     desc: "High risk — recover soon (entanglement / navigation hazard)",
     chip: "rounded border border-[var(--color-ocean-red)] bg-[var(--color-ocean-red)]/10 text-[var(--color-ocean-red)]",
-    stroke: "#EF4444",
-    fill: "rgba(239, 68, 68, 0.18)",
+    stroke: "#E63946",
+    fill: "rgba(230, 57, 70, 0.18)",
     tint: "bg-[var(--color-ocean-red)]/10 text-[var(--color-ocean-red)]",
     dot: "bg-[var(--color-ocean-red)]",
   },
@@ -113,8 +113,8 @@ export const SEVERITY_META: Record<
     label: "MEDIUM",
     desc: "Medium risk — schedule retrieval on an upcoming pass",
     chip: "rounded border border-[var(--color-ocean-amber)] bg-[var(--color-ocean-amber)]/10 text-[var(--color-ocean-amber)]",
-    stroke: "#F59E0B",
-    fill: "rgba(245, 158, 11, 0.18)",
+    stroke: "#C97A12",
+    fill: "rgba(201, 122, 18, 0.16)",
     tint: "bg-[var(--color-ocean-amber)]/10 text-[var(--color-ocean-amber)]",
     dot: "bg-[var(--color-ocean-amber)]",
   },
@@ -122,19 +122,39 @@ export const SEVERITY_META: Record<
     label: "LOW",
     desc: "Low risk — log and continue monitoring",
     chip: "rounded border border-[var(--color-ocean-blue)] bg-[var(--color-ocean-blue)]/10 text-[var(--color-ocean-blue)]",
-    stroke: "#3B82F6",
-    fill: "rgba(59, 130, 246, 0.18)",
+    stroke: "#0E6BA8",
+    fill: "rgba(14, 107, 168, 0.14)",
     tint: "bg-[var(--color-ocean-blue)]/10 text-[var(--color-ocean-blue)]",
     dot: "bg-[var(--color-ocean-blue)]",
   },
 };
 
 export const CLASS_COLORS: Record<string, { stroke: string; fill: string }> = {
-  "Ghost Net":         { stroke: "#a855f7", fill: "rgba(168,85,247,0.18)" },
-  "Metal Drum":        { stroke: "#f97316", fill: "rgba(249,115,22,0.18)" },
-  "Shipwreck":         { stroke: "#ef4444", fill: "rgba(239,68,68,0.18)" },
-  "Natural Formation": { stroke: "#22d3ee", fill: "rgba(34,211,238,0.18)" },
+  "Ghost Net":         { stroke: "#0E6BA8", fill: "rgba(14,107,168,0.16)" },
+  "Metal Drum":        { stroke: "#C97A12", fill: "rgba(201,122,18,0.16)" },
+  "Shipwreck":         { stroke: "#E63946", fill: "rgba(230,57,70,0.16)" },
+  "Natural Formation": { stroke: "#5FD4C4", fill: "rgba(95,212,196,0.16)" },
 };
+
+export function formatBytes(bytes: number): string {
+  if (!bytes || bytes <= 0) return "—";
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
+  return `${mb.toFixed(1)} MB`;
+}
+
+// Cross-track acoustic position of a contact inside the swath footprint.
+export function swathPosition(t: Pick<SonarTarget, "box">): "left" | "center" | "right" {
+  const cx = t.box.x + t.box.w / 2;
+  if (cx < 38) return "left";
+  if (cx > 62) return "right";
+  return "center";
+}
+
+// Net surveyed seabed area, extended per processed frame.
+export function estimateSurveyAreaSqm(uploadedImageCount: number): number {
+  return 50 * (620 + Math.max(0, uploadedImageCount - 1) * 250);
+}
 
 export function toGeoJSON(targets: SonarTarget[]) {
   return {
@@ -366,18 +386,18 @@ export function printSurveySheet(
 <title>OceanScan Survey Sheet</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, 'Segoe UI', monospace; color: #0f172a; padding: 32px; font-size: 12px; }
-  header { border-bottom: 2px solid #1e293b; padding-bottom: 12px; margin-bottom: 20px; }
+  body { font-family: -apple-system, 'Segoe UI', monospace; color: #10202E; padding: 32px; font-size: 12px; }
+  header { border-bottom: 2px solid #10202E; padding-bottom: 12px; margin-bottom: 20px; }
   h1 { font-size: 20px; letter-spacing: 0.05em; }
-  .meta { display: flex; gap: 32px; margin-top: 8px; color: #475569; font-size: 11px; }
+  .meta { display: flex; gap: 32px; margin-top: 8px; color: #45566A; font-size: 11px; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { border: 1px solid #cbd5e1; padding: 7px 9px; text-align: left; font-size: 11px; }
-  th { background: #f1f5f9; text-transform: uppercase; letter-spacing: 0.08em; font-size: 9px; }
+  th, td { border: 1px solid #D3DEE3; padding: 7px 9px; text-align: left; font-size: 11px; }
+  th { background: #E6EDF1; text-transform: uppercase; letter-spacing: 0.08em; font-size: 9px; }
   .sev { font-weight: 700; }
-  .sev-high { color: #dc2626; }
-  .sev-medium { color: #d97706; }
-  .sev-low { color: #2563eb; }
-  .foot { margin-top: 24px; color: #64748b; font-size: 10px; }
+  .sev-high { color: #E63946; }
+  .sev-medium { color: #C97A12; }
+  .sev-low { color: #0E6BA8; }
+  .foot { margin-top: 24px; color: #45566A; font-size: 10px; }
 </style>
 </head>
 <body>

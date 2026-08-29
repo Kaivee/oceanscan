@@ -18,8 +18,8 @@ interface TelemetryCardProps {
 export default function TelemetryCard({ target }: TelemetryCardProps) {
   if (!target) {
     return (
-      <section className="flex shrink-0 flex-col items-center justify-center gap-2 rounded border border-dashed border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] p-6 text-center">
-        <span className="flex h-10 w-10 items-center justify-center rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[var(--color-ocean-muted)]/60">
+      <section className="flex shrink-0 flex-col items-center justify-center gap-2 border border-dashed border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] p-6 text-center">
+        <span className="flex h-10 w-10 items-center justify-center border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[var(--color-ocean-muted)]/60">
           <Crosshair size={20} />
         </span>
         <p className="font-mono text-xs font-bold text-[var(--color-ocean-text)]">Nothing selected yet</p>
@@ -34,7 +34,7 @@ export default function TelemetryCard({ target }: TelemetryCardProps) {
   const confPct = Math.round(target.confidence * 100);
 
   return (
-    <section className="shrink-0 overflow-hidden rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
+    <section className="shrink-0 overflow-hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
       <div className="flex items-center gap-2.5 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
         <div className="mr-auto min-w-0">
           <h2 className="font-mono text-xs font-bold text-[var(--color-ocean-text)]">OBJECT DETAILS</h2>
@@ -50,7 +50,7 @@ export default function TelemetryCard({ target }: TelemetryCardProps) {
       <div className="p-4">
         <div className="flex items-center gap-3">
           <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded border border-current/20 ${meta.tint}`}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center border border-current/20 ${meta.tint}`}
           >
             {CLASS_ICON[target.cls] ?? <Anchor size={20} />}
           </span>

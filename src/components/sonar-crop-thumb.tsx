@@ -89,7 +89,7 @@ export default function SonarCropThumb({ target, size = 48 }: SonarCropThumbProp
       width={size}
       height={size}
       style={{ width: size, height: size }}
-      className="rounded-sm border border-[var(--color-ocean-border)]"
+      className="border border-[var(--color-ocean-border)]"
     />
   );
 }

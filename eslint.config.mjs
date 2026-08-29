@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // ML workspace — vendored site-packages JS is not ours.
+    "ml/**",
   ]),
 ]);
 
