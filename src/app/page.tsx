@@ -42,7 +42,6 @@ export default function Home() {
 
   const handleReveal = (id: string) => {
     setRevealedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-    setSelectedId(id);
   };
 
   const handleDetect = useCallback((response: ApiResponse, imageUrl: string, fileName: string, fileSizeBytes?: number) => {
