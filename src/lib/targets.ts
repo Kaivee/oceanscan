@@ -393,7 +393,17 @@ export interface ApiResponse {
     confidence_threshold: number;
     clahe_enabled: boolean;
     total_detections: number;
+    latitude?: number | null;
+    longitude?: number | null;
   };
+}
+
+export function surveyStartPoint(): { lat: number; lon: number } {
+  const lats = TRAJECTORY.map(([lat]) => lat);
+  const lons = TRAJECTORY.map(([, lon]) => lon);
+  const lat = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const lon = (Math.min(...lons) + Math.max(...lons)) / 2;
+  return { lat, lon };
 }
 
 export function apiDetectionToTarget(
@@ -415,13 +425,27 @@ export function apiDetectionToTarget(
     "Shipwreck": "SHIPWRECK",
     "Natural Formation": "ROCK_SEABED",
   };
+  const box = {
+    x: Math.round((x1 / imgW) * 100),
+    y: Math.round((y1 / imgH) * 100),
+    w: Math.round((w / imgW) * 100),
+    h: Math.round((h / imgH) * 100),
+  };
+  const frame =
+    metadata.latitude != null && metadata.longitude != null
+      ? { lat: metadata.latitude, lon: metadata.longitude }
+      : surveyStartPoint();
+  const swath = swathPosition({ box });
+  const spread = index % 5;
+  const lateral = swath === "left" ? -0.0012 : swath === "right" ? 0.0012 : 0;
+  const along = (spread - 2) * 0.0008;
   return {
     id: `API-${String(index + 1).padStart(3, "0")}`,
     label: det.class_name,
     cls: classMap[det.class_name] ?? det.class_name.toUpperCase().replace(/\s+/g, "_"),
     confidence: det.confidence,
-    lat: 41.3250 + Math.random() * 0.02,
-    lon: -70.5565 + Math.random() * 0.04,
+    lat: frame.lat + lateral,
+    lon: frame.lon + along,
     depthM: 30 + Math.round(Math.random() * 30),
     dims: {
       length: Math.round((w / imgW) * 20 * 10) / 10,
@@ -429,7 +453,7 @@ export function apiDetectionToTarget(
       height: 1.0,
     },
     severity,
-    box: { x: Math.round((x1 / imgW) * 100), y: Math.round((y1 / imgH) * 100), w: Math.round((w / imgW) * 100), h: Math.round((h / imgH) * 100) },
+    box,
     polygon: det.polygon
       ? det.polygon.map(([px, py]) => ({ x: Math.round(px * 10000) / 100, y: Math.round(py * 10000) / 100 }))
       : undefined,
