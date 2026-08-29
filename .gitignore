@@ -62,3 +62,6 @@ datasets/
 ml/data/
 ml/jobs/
 node_modules/
+
+.vercel
+.env*

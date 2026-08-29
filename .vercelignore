@@ -1,0 +1,11 @@
+# ML pipeline is deployed separately (NOT on Vercel)
+/ml
+
+# Junk / scratch
+/run code.txt
+*.log
+dev.log
+
+# Deps / build (handled by Vercel)
+node_modules/
+.next/

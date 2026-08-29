@@ -1,0 +1,16 @@
+# render.yaml — Render Blueprint for the OceanScan AI FastAPI inference service.
+# Deploy via: https://render.com (New -> Blueprint -> select this repo root)
+# Then set the frontend's NEXT_PUBLIC_INFERENCE_URL to this service's URL.
+
+services:
+  - type: web
+    name: oceanscan-inference
+    runtime: python
+    plan: free
+    rootDir: ml
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    healthCheckPath: /api/v1/health
