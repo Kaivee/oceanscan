@@ -394,7 +394,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
             <p className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ocean-muted)]">
               {pendingUpload
                 ? `${pendingUpload.fileName} · parse ${progress}% · ${pingsShown.toLocaleString()} pings`
-                : "GOA_SURVEY_L04.xtf · towfish @ 12 m · demo sweep L→R"}
+                : "07011_sidescan.xtf · towfish @ 12 m · demo sweep L→R"}
             </p>
           </div>
 
@@ -514,7 +514,7 @@ export default function AcquireTab({ onReveal, onComplete, onReset, onGoAnalyze,
 
         {/* Ingestion telemetry strip */}
         <div className={`grid grid-cols-2 gap-px border-t border-[var(--color-ocean-border)] bg-[var(--color-ocean-border)] sm:grid-cols-5`}>
-          <TelemetryCell label="FILE" value={pendingUpload?.fileName ?? "GOA_SURVEY_L04.XTF"} className="col-span-2 sm:col-span-1" />
+          <TelemetryCell label="FILE" value={pendingUpload?.fileName ?? "07011_SIDESCAN.XTF"} className="col-span-2 sm:col-span-1" />
           <TelemetryCell label="SIZE" value={pendingUpload ? formatBytes(fileSizeBytes) : "64.2 MB"} />
           <TelemetryCell label="PARSE" value={`${progress}%`} tone={progress === 100 ? "text-[#0E6BA8]" : "text-[#10202E]"} />
           <TelemetryCell label="PINGS" value={`${pingsShown.toLocaleString()} / ${totalPings.toLocaleString()}`} />

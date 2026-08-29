@@ -79,7 +79,7 @@ export default function TelemetryCard({ target }: TelemetryCardProps) {
           <Field label="Est. dimensions" value={`${target.dims.length} × ${target.dims.width} × ${target.dims.height} m`} />
           <Field label="Est. depth" value={`${target.depthM} m ± 1.5`} />
           <Field label="Latitude" value={`${target.lat.toFixed(4)}° N`} icon={<MapPin size={10} />} mono />
-          <Field label="Longitude" value={`${target.lon.toFixed(4)}° E`} icon={<MapPin size={10} />} mono />
+          <Field label="Longitude" value={`${Math.abs(target.lon).toFixed(4)}° W`} icon={<MapPin size={10} />} mono />
         </dl>
 
         <p className="mt-3 flex items-start gap-2 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] p-2.5 font-mono text-[10px] leading-relaxed text-[var(--color-ocean-muted)]">

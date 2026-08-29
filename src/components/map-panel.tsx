@@ -12,10 +12,10 @@ import {
 const W = 800;
 const H = 600;
 const PAD = 48;
-const LAT_MIN = 15.32;
-const LAT_MAX = 15.48;
-const LON_MIN = 73.7;
-const LON_MAX = 73.9;
+const LAT_MIN = 41.3;
+const LAT_MAX = 41.35;
+const LON_MIN = -70.605;
+const LON_MAX = -70.51;
 
 function proj(lat: number, lon: number) {
   return {
@@ -55,20 +55,20 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
     [trajectoryPts],
   );
 
-  const lats = [15.35, 15.38, 15.41, 15.44];
-  const lons = [73.74, 73.78, 73.82, 73.86];
+  const lats = [41.31, 41.32, 41.33, 41.34];
+  const lons = [-70.59, -70.57, -70.55, -70.53];
 
   return (
     <section className="overflow-hidden rounded border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
       <div className="flex items-center gap-3 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
         <div className="mr-auto min-w-0">
-          <h2 className="font-mono text-xs font-bold text-[var(--color-ocean-text)]">MISSION CHART — GOA BASIN</h2>
+          <h2 className="font-mono text-xs font-bold text-[var(--color-ocean-text)]">MISSION CHART — MARTHA&apos;S VINEYARD</h2>
           <p className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ocean-muted)]">
             Every mark is a logged contact · click to inspect
           </p>
         </div>
         <span className="hidden font-mono text-[10px] tracking-widest text-[var(--color-ocean-muted)] md:inline">
-          MISSION OS-118
+          SURVEY L04 · USGS 07011
         </span>
         <span className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-2 py-0.5 font-mono text-[10px] tabular-nums text-[var(--color-ocean-sky)]">
           {clock}
@@ -102,7 +102,7 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
               <g key={lon}>
                 <line x1={p.x} y1={PAD} x2={p.x} y2={H - PAD} stroke="rgba(95,212,196,0.08)" strokeWidth="1" />
                 <text x={p.x - 16} y={H - PAD + 12} fontSize="8" fill="rgba(95,212,196,0.4)" fontFamily="monospace">
-                  {lon.toFixed(2)}°E
+                  {Math.abs(lon).toFixed(2)}°W
                 </text>
               </g>
             );
@@ -115,7 +115,7 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
             strokeWidth="1"
           />
           <text x={W - 60} y={24} fontSize="8" fill="rgba(95,212,196,0.5)" fontFamily="monospace">
-            GOA COAST
+            MARTHA&apos;S VINEYARD
           </text>
 
           <path d="M60,180 C 220,240 420,300 620,330 C 690,342 730,360 750,392" fill="none" stroke="rgba(95,212,196,0.15)" strokeWidth="1" strokeDasharray="6 6" />
@@ -130,7 +130,7 @@ export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProp
               <>
                 <circle cx={s.x} cy={s.y} r="4" fill="#080E18" stroke="rgba(95,212,196,0.6)" strokeWidth="1.5" />
                 <text x={s.x - 50} y={s.y - 10} fontSize="9" fill="rgba(95,212,196,0.6)" fontFamily="monospace">
-                  Launch · MSV Sagar-Dhwani
+                  Launch · R/V Megan Miller
                 </text>
               </>
             );

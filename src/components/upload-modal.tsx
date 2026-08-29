@@ -5,6 +5,10 @@ import { Check, FileDown, Radar, TriangleAlert, Upload } from "lucide-react";
 import Modal from "./modal";
 import type { ApiResponse, ApiDetection } from "@/lib/targets";
 
+const INFERENCE_URL =
+  process.env.NEXT_PUBLIC_INFERENCE_URL?.replace(/\/+$/, "") ||
+  "http://localhost:8000";
+
 const VALID_EXT = [".xtf", ".jsf", ".png", ".jpg", ".jpeg", ".tiff"];
 
 type Phase = "idle" | "uploading" | "detecting" | "done" | "error";
@@ -88,7 +92,7 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
         try {
           const formData = new FormData();
           formData.append("file", file);
-          const res = await fetch("http://localhost:8000/api/v1/detect?clahe_enabled=false", {
+          const res = await fetch(`${INFERENCE_URL}/api/v1/detect?clahe_enabled=false`, {
             method: "POST",
             body: formData,
           });

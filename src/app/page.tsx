@@ -179,7 +179,7 @@ export default function Home() {
       </main>
 
       <footer className="py-3 text-center font-mono text-[9px] tracking-widest text-[var(--color-ocean-muted)]/50 uppercase">
-        OceanScan AI v3.0 · Tactical Hydrographic Workstation · Simulated Data (GOA_SURVEY_L04)
+        OceanScan AI v3.0 · Tactical Hydrographic Workstation · USGS 07011 (OFR 2008-1288)
       </footer>
 
       <UploadModal open={showUpload} onClose={() => setShowUpload(false)} onDetect={handleDetect} />

@@ -41,11 +41,11 @@ export default function ReportTab({
   uploadedImageCount,
 }: ReportTabProps) {
   const [minConf, setMinConf] = useState(0);
-  const [vessel, setVessel] = useState("MSV SAGAR-DHWANI");
-  const [sensor, setSensor] = useState("900 kHz Side-Scan Sonar");
-  const [surveyId, setSurveyId] = useState("GOA_SURVEY_L04");
-  const [dispatchId, setDispatchId] = useState("DSP-2026-0907");
-  const [operator, setOperator] = useState("LT. A. FERNANDES");
+  const [vessel, setVessel] = useState("R/V Megan Miller");
+  const [sensor, setSensor] = useState("Klein System 3000 · 100/500 kHz");
+  const [surveyId, setSurveyId] = useState("USGS_07011_MV");
+  const [dispatchId, setDispatchId] = useState("DSP-07011-03");
+  const [operator, setOperator] = useState("E. PENDLETON, USGS");
 
   const generatedAt = useMemo(() => {
     const d = new Date();
@@ -123,7 +123,7 @@ export default function ReportTab({
             </div>
             {geoBounds && (
               <span className="hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] px-2 py-1 font-mono text-[9px] tabular-nums text-[#45566A] lg:block">
-                BBOX N {geoBounds.n.toFixed(4)}° · S {geoBounds.s.toFixed(4)}° · E {geoBounds.e.toFixed(4)}° · W {geoBounds.w.toFixed(4)}°
+                BBOX N {geoBounds.n.toFixed(3)}° · S {geoBounds.s.toFixed(3)}° · E {Math.abs(geoBounds.e).toFixed(3)}°W · W {Math.abs(geoBounds.w).toFixed(3)}°W
               </span>
             )}
           </div>
@@ -186,7 +186,7 @@ export default function ReportTab({
             {geoBounds && (
               <p className="flex items-start gap-2 border-t border-dashed border-[var(--color-ocean-border)] pt-3 font-mono text-[9px] leading-relaxed text-[#45566A]">
                 <MapPin size={11} className="mt-0.5 shrink-0 text-[#0E6BA8]" />
-                Geo-boundary N {geoBounds.n.toFixed(4)}° / S {geoBounds.s.toFixed(4)}° / E {geoBounds.e.toFixed(4)}° / W {geoBounds.w.toFixed(4)}°.
+                Geo-boundary N {geoBounds.n.toFixed(3)}° / S {geoBounds.s.toFixed(3)}° / E {Math.abs(geoBounds.e).toFixed(3)}°W / W {Math.abs(geoBounds.w).toFixed(3)}°W · WGS-84.
               </p>
             )}
           </div>
@@ -244,7 +244,7 @@ export default function ReportTab({
                         <div className="leading-tight">
                           <span className="block font-mono text-[10px] font-bold text-[#0E6BA8]">{t.id}</span>
                           <span className="block font-mono text-[8px] tabular-nums text-[#45566A]">
-                            {t.lat.toFixed(4)}°N · {t.lon.toFixed(4)}°E
+                            {t.lat.toFixed(4)}°N · {Math.abs(t.lon).toFixed(4)}°W
                           </span>
                         </div>
                       </div>
@@ -296,7 +296,7 @@ export default function ReportTab({
       </section>
 
       <p className="font-sans text-[11px] text-[#45566A]">
-        Simulated dataset for demonstration — coordinates/contacts illustrative. High-severity contacts must be verified by ROV before recovery operations.
+        Based on USGS Open-File Report 2008-1288, sidescan survey 07011 off Martha&apos;s Vineyard, MA. Real WGS-84 positions; high-severity contacts must still be verified by ROV before recovery operations.
       </p>
     </div>
   );
@@ -381,7 +381,7 @@ function TracklineMap({
               strokeWidth="1"
             />
             <text x={proj(0, lo).x} y={H - PAD + 12} textAnchor="middle" fontSize="7.5" fill="#45566A" style={{ fontFamily: "monospace" }}>
-              {lo.toFixed(3)}°E
+              {Math.abs(lo).toFixed(3)}°W
             </text>
           </g>
         ))}

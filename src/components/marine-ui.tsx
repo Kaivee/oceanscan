@@ -18,10 +18,10 @@ export function TechnicalGrid() {
   return (
     <div className="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(rgba(95,212,196,0.15)_1px,transparent_1px)] [background-size:20px_20px]">
       <div className="absolute top-2 left-2 font-mono text-[9px] text-[var(--color-ocean-sky)]/60">
-        {"15°26'00\"N | 73°46'00\"E"}
+        {"41°19'00\"N | 70°33'00\"W"}
       </div>
       <div className="absolute bottom-2 right-2 font-mono text-[9px] text-[var(--color-ocean-sky)]/60">
-        DATUM: WGS-84 / UTM-43N
+        DATUM: WGS-84 / UTM-19N
       </div>
     </div>
   );
@@ -116,7 +116,7 @@ export function MarineSurveyTable({ data, selectedId, onSelectTarget }: MarineTa
                     {Math.round(item.confidence * 100)}%
                   </td>
                   <td className="py-2.5 px-4 font-mono text-[var(--color-ocean-sky)]/70">
-                    {item.latitude.toFixed(4)}°N, {item.longitude.toFixed(4)}°E
+                    {item.latitude.toFixed(4)}°N, {Math.abs(item.longitude).toFixed(4)}°W
                   </td>
                   <td className="py-2.5 px-4 font-mono tabular-nums text-[var(--color-ocean-text)]">{item.depth} m</td>
                   <td className="py-2.5 px-4">

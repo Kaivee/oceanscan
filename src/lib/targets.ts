@@ -33,8 +33,8 @@ export const TARGETS: SonarTarget[] = [
     label: "Ghost Net",
     cls: "NET_GHOST",
     confidence: 0.94,
-    lat: 15.4182,
-    lon: 73.7965,
+    lat: 41.3081,
+    lon: -70.5562,
     depthM: 34,
     dims: { length: 12.6, width: 8.4, height: 1.2 },
     severity: "high",
@@ -46,8 +46,8 @@ export const TARGETS: SonarTarget[] = [
     label: "Metal Cylinder",
     cls: "DRUM_STEEL",
     confidence: 0.91,
-    lat: 15.3731,
-    lon: 73.8412,
+    lat: 41.3226,
+    lon: -70.5721,
     depthM: 41,
     dims: { length: 0.9, width: 0.9, height: 1.2 },
     severity: "high",
@@ -59,8 +59,8 @@ export const TARGETS: SonarTarget[] = [
     label: "Sunken Pipe",
     cls: "PIPE_SECTION",
     confidence: 0.88,
-    lat: 15.4423,
-    lon: 73.7538,
+    lat: 41.334,
+    lon: -70.5586,
     depthM: 29,
     dims: { length: 18.0, width: 1.4, height: 1.4 },
     severity: "medium",
@@ -72,28 +72,115 @@ export const TARGETS: SonarTarget[] = [
     label: "Shipping Container",
     cls: "CONTAINER_LOST",
     confidence: 0.76,
-    lat: 15.3564,
-    lon: 73.8091,
+    lat: 41.3419,
+    lon: -70.5246,
     depthM: 52,
     dims: { length: 12.19, width: 2.44, height: 2.59 },
     severity: "medium",
     box: { x: 63, y: 62, w: 22, h: 16 },
-    note: "Rectangular prism signature near shipping lane. Registered loss event INDSAR #2026-0417.",
+    note: "Rectangular prism signature near shipping lane. Registered loss event #2026-0417.",
   },
 ];
 
+// Real navigation track from USGS cruise 07011 (OFR 2008-1288), 1-minute GPS fixes
+// along the sidescan-sonar lawnmower survey off the south shore of Martha's Vineyard.
 export const TRAJECTORY: Array<[number, number]> = [
-  [15.468, 73.724],
-  [15.452, 73.751],
-  [15.4423, 73.7538],
-  [15.428, 73.782],
-  [15.4182, 73.7965],
-  [15.401, 73.821],
-  [15.388, 73.83],
-  [15.3731, 73.8412],
-  [15.362, 73.805],
-  [15.3564, 73.8091],
-  [15.339, 73.776],
+  [41.303848, -70.51593],
+  [41.303638, -70.526512],
+  [41.303627, -70.537758],
+  [41.303684, -70.549202],
+  [41.303665, -70.558983],
+  [41.303692, -70.569603],
+  [41.303692, -70.581322],
+  [41.303635, -70.594536],
+  [41.308701, -70.594696],
+  [41.308712, -70.583489],
+  [41.308765, -70.572342],
+  [41.308689, -70.561012],
+  [41.308651, -70.54808],
+  [41.308754, -70.536667],
+  [41.308685, -70.525154],
+  [41.308662, -70.513786],
+  [41.313835, -70.595734],
+  [41.31385, -70.58419],
+  [41.313809, -70.572769],
+  [41.313828, -70.561645],
+  [41.313881, -70.550346],
+  [41.313854, -70.53862],
+  [41.31382, -70.526825],
+  [41.313824, -70.516571],
+  [41.318646, -70.594353],
+  [41.318634, -70.583008],
+  [41.318611, -70.570732],
+  [41.318649, -70.558624],
+  [41.318619, -70.548157],
+  [41.318638, -70.536247],
+  [41.318611, -70.524353],
+  [41.318562, -70.514999],
+  [41.322666, -70.595962],
+  [41.322731, -70.586716],
+  [41.322761, -70.575348],
+  [41.322742, -70.563408],
+  [41.322758, -70.551521],
+  [41.322803, -70.539658],
+  [41.322765, -70.527824],
+  [41.322723, -70.516769],
+  [41.326748, -70.595337],
+  [41.326683, -70.583992],
+  [41.326752, -70.571922],
+  [41.326717, -70.559799],
+  [41.32666, -70.549141],
+  [41.326702, -70.537071],
+  [41.326771, -70.52533],
+  [41.326763, -70.516014],
+  [41.331127, -70.5952],
+  [41.330902, -70.585281],
+  [41.330856, -70.57383],
+  [41.330837, -70.562073],
+  [41.33086, -70.550468],
+  [41.330856, -70.539062],
+  [41.330891, -70.527618],
+  [41.330856, -70.517014],
+  [41.334835, -70.595505],
+  [41.334778, -70.584762],
+  [41.334846, -70.573776],
+  [41.334846, -70.562309],
+  [41.334835, -70.550629],
+  [41.334869, -70.53862],
+  [41.334801, -70.526718],
+  [41.334862, -70.516396],
+  [41.338451, -70.595383],
+  [41.338413, -70.585365],
+  [41.338444, -70.574692],
+  [41.338436, -70.563889],
+  [41.338409, -70.551376],
+  [41.338448, -70.540215],
+  [41.338428, -70.528954],
+  [41.338455, -70.51651],
+  [41.341545, -70.594444],
+  [41.341595, -70.578323],
+  [41.34158, -70.567657],
+  [41.341595, -70.556969],
+  [41.341587, -70.546249],
+  [41.341583, -70.535515],
+  [41.341595, -70.524834],
+  [41.341518, -70.516083],
+  [41.344986, -70.523048],
+  [41.345192, -70.531624],
+  [41.345203, -70.541573],
+  [41.34515, -70.553261],
+  [41.345196, -70.563103],
+  [41.345219, -70.574661],
+  [41.345173, -70.584732],
+  [41.345146, -70.594887],
+  [41.346619, -70.594818],
+  [41.346626, -70.590614],
+  [41.346603, -70.585808],
+  [41.346641, -70.580933],
+  [41.346634, -70.576042],
+  [41.346573, -70.57103],
+  [41.346535, -70.565895],
+  [41.346386, -70.562958],
 ];
 
 export const SEVERITY_META: Record<
@@ -141,6 +228,15 @@ export function formatBytes(bytes: number): string {
   const mb = bytes / (1024 * 1024);
   if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
   return `${mb.toFixed(1)} MB`;
+}
+
+// Hemisphere-aware coordinate formatting (west longitudes are negative).
+export function fmtLat(lat: number, dp = 4): string {
+  return `${Math.abs(lat).toFixed(dp)}°${lat >= 0 ? "N" : "S"}`;
+}
+
+export function fmtLon(lon: number, dp = 4): string {
+  return `${Math.abs(lon).toFixed(dp)}°${lon >= 0 ? "E" : "W"}`;
 }
 
 // Cross-track acoustic position of a contact inside the swath footprint.
@@ -267,7 +363,7 @@ export function retrievalRoute(start: [number, number], targets: SonarTarget[]) 
   let prev = start;
   for (const t of order) {
     legs.push({
-      from: "MSV SAGAR-DHWANI",
+      from: "R/V Megan Miller",
       to: t.id,
       distM: distanceM(prev[0], prev[1], t.lat, t.lon),
       bearing: bearingDeg(prev[0], prev[1], t.lat, t.lon),
@@ -324,8 +420,8 @@ export function apiDetectionToTarget(
     label: det.class_name,
     cls: classMap[det.class_name] ?? det.class_name.toUpperCase().replace(/\s+/g, "_"),
     confidence: det.confidence,
-    lat: 15.4000 + Math.random() * 0.05,
-    lon: 73.8000 + Math.random() * 0.05,
+    lat: 41.3250 + Math.random() * 0.02,
+    lon: -70.5565 + Math.random() * 0.04,
     depthM: 30 + Math.round(Math.random() * 30),
     dims: {
       length: Math.round((w / imgW) * 20 * 10) / 10,
@@ -371,7 +467,7 @@ export function printSurveySheet(
         <td>${t.label} (${t.cls})</td>
         <td>${(t.confidence * 100).toFixed(1)}%</td>
         <td>${t.lat.toFixed(6)}°N</td>
-        <td>${t.lon.toFixed(6)}°E</td>
+        <td>${Math.abs(t.lon).toFixed(6)}°W</td>
         <td>${t.depthM} m</td>
         <td class="sev sev-${t.severity}">${SEV_LABEL[t.severity]}</td>
         <td>${t.dims.length.toFixed(2)} × ${t.dims.width.toFixed(2)} × ${t.dims.height.toFixed(2)} m</td>

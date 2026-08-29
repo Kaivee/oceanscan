@@ -78,7 +78,7 @@ export function RetrievalModal({
   targets: SonarTarget[];
 }) {
   const route = useMemo(
-    () => retrievalRoute([15.468, 73.724], targets),
+    () => retrievalRoute([41.303848, -70.51593], targets),
     [targets],
   );
 
@@ -105,7 +105,7 @@ export function RetrievalModal({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-mono text-[11px] text-[var(--color-ocean-muted)]">
-                    {i === 0 ? "MSV SAGAR-DHWANI" : route.order[i - 1].id}
+                    {i === 0 ? "R/V MEGAN MILLER" : route.order[i - 1].id}
                     <span className="mx-1.5 text-[var(--color-ocean-muted)]/50">→</span>
                     <span className="font-mono text-xs font-bold" style={{ color: meta.stroke }}>
                       {t.id} {t.label}
