@@ -60,7 +60,7 @@ function BoundingBoxOverlay({
             key={t.id}
             onClick={(e) => { e.stopPropagation(); onBoxClick(t.id); }}
             onPointerDown={(e) => e.stopPropagation()}
-            className={`absolute cursor-pointer transition-opacity duration-300 ${dimmed ? "opacity-25" : "opacity-100"}`}
+            className={`absolute cursor-pointer transition-opacity duration-300 ${dimmed ? "opacity-60" : "opacity-100"}`}
             style={{
               left: `${t.box.x}%`,
               top: `${t.box.y}%`,

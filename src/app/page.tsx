@@ -64,11 +64,7 @@ export default function Home() {
   const handleScanComplete = useCallback(() => {
     setScanDone(true);
     setTab("analyze");
-    const apiRevealed = apiTargets.filter((t) => revealedIds.includes(t.id));
-    if (apiRevealed.length > 0 && !selectedId) {
-      setSelectedId(apiRevealed[apiRevealed.length - 1].id);
-    }
-  }, [apiTargets, revealedIds, selectedId]);
+  }, []);
 
   const handleReset = () => {
     setRevealedIds([]);
@@ -147,7 +143,6 @@ export default function Home() {
             onReset={handleReset}
             onGoAnalyze={() => {
               setTab("analyze");
-              if (!selectedId && revealed.length > 0) setSelectedId(revealed[0].id);
             }}
             pendingUpload={pendingUpload}
           />
