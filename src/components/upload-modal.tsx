@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, FileDown, Radar, TriangleAlert, Upload } from "lucide-react";
-import Modal from "./modal";
-import type { ApiResponse, ApiDetection } from "@/lib/targets";
+import type { ApiResponse } from "@/lib/targets";
 
 const INFERENCE_URL =
   process.env.NEXT_PUBLIC_INFERENCE_URL?.replace(/\/+$/, "") ||
@@ -13,52 +11,14 @@ const VALID_EXT = [".xtf", ".jsf", ".png", ".jpg", ".jpeg", ".tiff"];
 
 type Phase = "idle" | "uploading" | "detecting" | "done" | "error";
 
-const MOCK_CLASSES = [
-  { name: "Ghost Net", risk: "high" as const },
-  { name: "Metal Drum", risk: "medium" as const },
-  { name: "Shipwreck", risk: "high" as const },
-  { name: "Natural Formation", risk: "low" as const },
-];
-
-function generateMockDetections(): ApiDetection[] {
-  const count = 2 + Math.floor(Math.random() * 3);
-  const detections: ApiDetection[] = [];
-  const used = new Set<string>();
-
-  for (let i = 0; i < count; i++) {
-    const cls = MOCK_CLASSES[i % MOCK_CLASSES.length];
-    let bx: number, by: number, bw: number, bh: number;
-    let key: string;
-    do {
-      bx = 40 + Math.random() * 500;
-      by = 40 + Math.random() * 500;
-      bw = 50 + Math.random() * 100;
-      bh = 50 + Math.random() * 80;
-      key = `${Math.round(bx)},${Math.round(by)}`;
-    } while (used.has(key));
-    used.add(key);
-
-    detections.push({
-      class_id: i % 4,
-      class_name: cls.name,
-      confidence: 0.65 + Math.random() * 0.33,
-      bbox: [bx, by, bw, bh],
-      polygon: [],
-      risk_level: cls.risk,
-    });
-  }
-  return detections;
-}
-
 interface UploadModalProps {
   open: boolean;
   onClose: () => void;
-  onDetect: (response: ApiResponse, imageUrl: string, fileName: string, fileSizeBytes?: number) => void;
+  onDetect: (response: ApiResponse, imageUrl: string, fileName: string) => void;
   initialFile?: File | null;
 }
 
 export default function UploadModal({ open, onClose, onDetect, initialFile }: UploadModalProps) {
-  const [dragging, setDragging] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [fileName, setFileName] = useState("");
   const [progress, setProgress] = useState(0);
@@ -67,6 +27,8 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Real edge inference only (POST /api/v1/detect). No fake fallback — if the
+  // backend is unreachable we surface an error instead of fabricating detections.
   const sendToApi = useCallback(
     async (file: File) => {
       setPhase("uploading");
@@ -86,43 +48,29 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
       try {
         setPhase("detecting");
         setProgress(95);
-
-        let data: ApiResponse;
-
-        try {
-          const formData = new FormData();
-          formData.append("file", file);
-          const res = await fetch(`${INFERENCE_URL}/api/v1/detect?clahe_enabled=false`, {
-            method: "POST",
-            body: formData,
-          });
-          if (!res.ok) throw new Error("API not available");
-          data = await res.json();
-        } catch {
-          await new Promise((r) => setTimeout(r, 800 + Math.random() * 600));
-          data = {
-            detections: generateMockDetections(),
-            metadata: {
-              image_shape: [640, 640],
-              model: "yolov8s-seg-mock",
-              device: "demo",
-              latency_ms: Math.round(50 + Math.random() * 100),
-              confidence_threshold: 0.5,
-              clahe_enabled: true,
-              total_detections: 0,
-            },
-          };
-          data.metadata.total_detections = data.detections.length;
-        }
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch(`${INFERENCE_URL}/api/v1/detect?clahe_enabled=false`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) throw new Error(`Inference API returned ${res.status}`);
+        const data: ApiResponse = await res.json();
 
         if (timerRef.current) clearInterval(timerRef.current);
         setProgress(100);
         setDetectionCount(data.detections.length);
         setPhase("done");
-        onDetect(data, imageUrl, file.name, file.size);
+        onDetect(data, imageUrl, file.name);
       } catch (err) {
         if (timerRef.current) clearInterval(timerRef.current);
-        setError(err instanceof Error ? err.message : "Failed to process file");
+        const detail =
+          err instanceof Error && err.message
+            ? err.message
+            : "The inference API could not be reached";
+        setError(
+          `${detail}. Start the backend at ${INFERENCE_URL} (uvicorn api.main:app) and retry.`,
+        );
         setPhase("error");
       }
     },
@@ -131,9 +79,8 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
 
   const handleFile = useCallback(
     (file: File) => {
-      const ok = VALID_EXT.some((ext) => file.name.toLowerCase().endsWith(ext));
-      if (!ok) {
-        setError(`Unsupported format ".${file.name.split(".").pop()}". Accepted: .XTF, .JSF, .PNG, .JPG, .TIFF`);
+      if (!VALID_EXT.some((ext) => file.name.toLowerCase().endsWith(ext))) {
+        setError(`Unsupported format. Accepted: .XTF, .JSF, .PNG, .JPG, .TIFF`);
         setPhase("error");
         return;
       }
@@ -147,9 +94,7 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
     if (timerRef.current) clearInterval(timerRef.current);
     setPhase("idle");
     setProgress(0);
-    setFileName("");
     setError("");
-    setDragging(false);
     setDetectionCount(0);
   }, []);
 
@@ -158,8 +103,6 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
     onClose();
   };
 
-  // If a file was already selected on the Launch screen, ingest it immediately
-  // so the user doesn't have to pick the file a second time inside the modal.
   useEffect(() => {
     if (!open || !initialFile) return;
     const f = initialFile;
@@ -168,95 +111,101 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialFile]);
 
+  if (!open) return null;
+
+  const center = phase === "idle" || phase === "error";
+
   return (
-    <Modal
-      open={open}
-      onClose={close}
-      title="Upload Survey File"
-      subtitle="Edge formats: .XTF (Kongsberg side-scan) · .JSF (EdgeTech) · .PNG (processed frame)"
-      icon={<Radar size={15} />}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(20,20,20,0.4)" }}
+      onClick={close}
     >
-      <div className="p-5">
-        {phase === "idle" || phase === "error" ? (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => inputRef.current?.click()}
-            onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragging(false);
-              const f = e.dataTransfer.files?.[0];
-              if (f) handleFile(f);
-            }}
-            className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-none border-2 border-dashed px-6 py-12 text-center transition ${
-              dragging
-                ? "border-[var(--color-ocean-sky)] bg-[var(--color-ocean-sky)]/5"
-                : phase === "error"
-                  ? "border-[var(--color-ocean-red)] bg-[var(--color-ocean-red)]/5"
-                  : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)]/50 hover:border-[var(--color-ocean-muted)]/40"
-            }`}
-          >
-            <span
-              className={`flex h-12 w-12 items-center justify-center rounded-none border ${
-                phase === "error"
-                  ? "border-[var(--color-ocean-red)]/50 text-[var(--color-ocean-red)]"
-                  : "border-[var(--color-ocean-sky)]/30 text-[var(--color-ocean-sky)]"
-              }`}
+      <div
+        className="w-full max-w-[440px]"
+        style={{ background: "var(--surface)", border: "1px solid var(--ink)", boxShadow: "0 24px 64px rgba(20,20,20,0.3)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-3.5"
+          style={{ borderBottom: "1px solid var(--ink)" }}>
+          <div>
+            <h3 style={{ fontFamily: "var(--f-display)", fontWeight: 700, fontSize: "15px", color: "var(--ink)" }}>
+              Ingest Survey Log
+            </h3>
+            <p style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
+              .XTF · .JSF · .PNG — edge inference
+            </p>
+          </div>
+          <button onClick={close} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "var(--ink-soft)" }}>
+            ×
+          </button>
+        </div>
+
+        <div className="p-5">
+          {center ? (
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => inputRef.current?.click()}
+              onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const f = e.dataTransfer.files?.[0];
+                if (f) handleFile(f);
+              }}
+              className="flex cursor-pointer flex-col items-center justify-center text-center"
+              style={{
+                border: error ? "1.5px dashed var(--signal)" : "1.5px dashed var(--line-strong)",
+                background: "var(--surface-2)",
+                padding: "36px 20px",
+              }}
             >
-              {phase === "error" ? <TriangleAlert size={22} /> : <Upload size={22} />}
-            </span>
-            <p className="font-mono text-xs font-bold text-[var(--color-ocean-text)]">
-              {phase === "error" ? error : "Drop your acoustic capture here"}
-            </p>
-            <p className="font-mono text-[10px] tracking-wide text-[var(--color-ocean-muted)]">
-              or click to browse · max 2 GB · .XTF / .JSF / .PNG
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-none border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] p-5">
-            <div className="mb-3 flex items-center gap-3">
-              <span
-                className={`flex h-10 w-10 items-center justify-center rounded-none border ${
-                  phase === "done"
-                    ? "border-[var(--color-ocean-emerald)]/50 text-[var(--color-ocean-emerald)]"
-                    : "border-[var(--color-ocean-sky)]/30 text-[var(--color-ocean-sky)]"
-                }`}
-              >
-                {phase === "done" ? <Check size={20} /> : <FileDown size={20} />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-mono text-xs font-bold text-[var(--color-ocean-sky)]">{fileName}</p>
-                <p className="font-mono text-[9px] uppercase tracking-wide text-[var(--color-ocean-muted)]">
-                  {phase === "done"
-                    ? `${detectionCount} anomal${detectionCount === 1 ? "y" : "ies"} detected — view in Analyze tab`
-                    : phase === "detecting"
-                      ? "Running YOLOv8-seg inference..."
-                      : `Transferring to edge node · ${Math.floor(progress)}%`}
-                </p>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#141414" strokeWidth="1.6" aria-hidden="true">
+                <path d="M12 16V4 M6 10l6-6 6 6" />
+                <path d="M4 20h16" />
+              </svg>
+              <p className="mt-4" style={{ fontFamily: "var(--f-mono)", fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>
+                {error ? error : "Drop a sonar log here"}
+              </p>
+              <p className="mt-1" style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink-soft)" }}>
+                or click to browse
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center gap-3">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={phase === "done" ? "var(--signal)" : "#141414"} strokeWidth="1.8" aria-hidden="true">
+                  {phase === "done" ? <path d="M4 12l5 5L20 6" /> : <circle cx="12" cy="12" r="9" />}
+                </svg>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate" style={{ fontFamily: "var(--f-mono)", fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>
+                    {fileName}
+                  </p>
+                  <p style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
+                    {phase === "done"
+                      ? `${detectionCount} anomal${detectionCount === 1 ? "y" : "ies"} detected`
+                      : phase === "detecting"
+                        ? "Running inference..."
+                        : `Transferring to edge node · ${Math.floor(progress)}%`}
+                  </p>
+                </div>
               </div>
+              <div className="mt-4 h-1.5 overflow-hidden" style={{ background: "var(--line)" }}>
+                <div className="h-full transition-all duration-200" style={{ width: `${progress}%`, background: "var(--signal)" }} />
+              </div>
+              {phase === "done" && (
+                <button
+                  onClick={close}
+                  className="mt-5 w-full"
+                  style={{ background: "var(--ink)", color: "#FFFFFF", padding: "11px", fontFamily: "var(--f-mono)", fontSize: "12px", cursor: "pointer" }}
+                >
+                  Continue to Frame
+                </button>
+              )}
             </div>
-            <div className="h-1.5 overflow-hidden bg-[var(--color-ocean-card)]">
-              <div
-                className={`h-full transition-all duration-200 ${phase === "done" ? "bg-[var(--color-ocean-emerald)]" : "bg-[var(--color-ocean-sky)]"}`}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            {phase === "done" && (
-              <button
-                onClick={reset}
-                className="mt-4 w-full rounded-none border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] py-2.5 font-mono text-xs font-bold text-[var(--color-ocean-text)] transition hover:bg-[var(--color-ocean-card)]"
-              >
-                Ingest another file
-              </button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
+
         <input
           ref={inputRef}
           type="file"
@@ -269,6 +218,6 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
           }}
         />
       </div>
-    </Modal>
+    </div>
   );
 }

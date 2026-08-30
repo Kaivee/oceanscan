@@ -1,207 +1,248 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Navigation } from "lucide-react";
-import { SonarPingRipple, TechnicalGrid } from "@/components/marine-ui";
-import {
-  SEVERITY_META,
-  TRAJECTORY,
-  type SonarTarget,
-} from "@/lib/targets";
+import { useMemo } from "react";
+import { TRAJECTORY, type Priority, type SonarTarget } from "@/lib/targets";
 
-const W = 800;
-const H = 600;
-const PAD = 48;
-const LAT_MIN = 41.3;
-const LAT_MAX = 41.35;
-const LON_MIN = -70.605;
-const LON_MAX = -70.51;
+const W = 940;
+const H = 620;
+const PAD = 56;
 
-function proj(lat: number, lon: number) {
-  return {
-    x: PAD + ((lon - LON_MIN) / (LON_MAX - LON_MIN)) * (W - 2 * PAD),
-    y: H - PAD - ((lat - LAT_MIN) / (LAT_MAX - LAT_MIN)) * (H - 2 * PAD),
-  };
+// Light chart palette that reads as open water + shoreline within the Mono-Signal system.
+const WATER = "#E3EBEE";
+const WATER_DEEP = "#D6E1E5";
+const LAND = "#E8E2D3";
+const LAND_LINE = "#9A8F78";
+
+function priorityOpacity(p: Priority) {
+  return p === "P1" ? 1 : p === "P2" ? 0.66 : 0.36;
+}
+
+function PinThumb({ id }: { id: string }) {
+  return (
+    <svg width="74" height="52" viewBox="0 0 74 52" aria-hidden="true">
+      <defs>
+        <pattern id={`hatch-${id}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="6" height="6" fill="#F4F4F1" />
+          <line x1="0" y1="0" x2="0" y2="6" stroke="#C9C9C2" strokeWidth="1.4" />
+        </pattern>
+      </defs>
+      <rect width="74" height="52" fill={`url(#hatch-${id})`} />
+      <rect x="8" y="10" width="22" height="10" fill="#141414" opacity="0.6" />
+      <rect x="40" y="28" width="16" height="9" fill="#FF5A1F" opacity="0.55" />
+    </svg>
+  );
 }
 
 interface MapPanelProps {
   targets: SonarTarget[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
 }
 
-export default function MapPanel({ targets, selectedId, onSelect }: MapPanelProps) {
-  const [clock, setClock] = useState("--:--:-- UTC");
+export default function MapPanel({ targets }: MapPanelProps) {
+  // Projection is anchored to the actual target positions (so the three objects
+  // stay separated on the chart instead of collapsing to one dot). The vessel
+  // track is drawn as context only when it falls inside the chart — it must not
+  // define the viewport bounds.
+  const { proj, lats, lons } = useMemo(() => {
+    const tlats = targets.map((t) => t.lat);
+    const tlons = targets.map((t) => t.lon);
+    const centerLat = targets.length ? (Math.min(...tlats) + Math.max(...tlats)) / 2 : TRAJECTORY[0][0];
+    const centerLon = targets.length ? (Math.min(...tlons) + Math.max(...tlons)) / 2 : TRAJECTORY[0][1];
+    const rawSpanLat = targets.length ? Math.max(...tlats) - Math.min(...tlats) : 0;
+    const rawSpanLon = targets.length ? Math.max(...tlons) - Math.min(...tlons) : 0;
+    // Keep a sane minimum viewport even for a single (or coincident) detection.
+    const halfLat = Math.max(rawSpanLat * 0.6, 0.0012);
+    const halfLon = Math.max(rawSpanLon * 0.6, 0.0012);
+    const minLat = centerLat - halfLat;
+    const maxLat = centerLat + halfLat;
+    const minLon = centerLon - halfLon;
+    const maxLon = centerLon + halfLon;
+    const p = (lat: number, lon: number) => ({
+      x: PAD + ((lon - minLon) / (maxLon - minLon)) * (W - 2 * PAD),
+      y: PAD + ((maxLat - lat) / (maxLat - minLat)) * (H - 2 * PAD),
+    });
+    return { proj: p, lats: tlats, lons: tlons };
+  }, [targets]);
 
-  useEffect(() => {
-    const tick = () =>
-      setClock(
-        new Date().toLocaleTimeString("en-GB", { hour12: false, timeZone: "UTC" }) + " UTC",
-      );
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
+  const minL = Math.min(...lats);
+  const maxL = Math.max(...lats);
+  const minO = Math.min(...lons);
+  const maxO = Math.max(...lons);
 
-  const trajectoryPts = useMemo(
-    () => TRAJECTORY.map(([lat, lon]) => proj(lat, lon)),
-    [],
-  );
   const pathD = useMemo(
     () =>
-      trajectoryPts
-        .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
-        .join(" "),
-    [trajectoryPts],
+      TRAJECTORY.map(([la, lo], i) => {
+        const pt = proj(la, lo);
+        return `${i === 0 ? "M" : "L"}${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+      }).join(" "),
+    [proj],
   );
 
-  const lats = [41.31, 41.32, 41.33, 41.34];
-  const lons = [-70.59, -70.57, -70.55, -70.53];
+  const points = useMemo(() => targets.map((t) => ({ t, p: proj(t.lat, t.lon) })), [targets, proj]);
+
+  // Shoreline: land mass hugging the western/north edge, water to the south-east.
+  const shoreline = useMemo(() => {
+    const c = proj(maxL + 0.001, minO);
+    return [
+      [0, 0],
+      [c.x * 0.9, 0],
+      [c.x * 0.62, c.y * 0.34],
+      [c.x * 0.85, c.y * 0.5],
+      [c.x * 0.58, c.y * 0.72],
+      [c.x * 0.78, c.y * 0.9],
+      [c.x * 0.5, H],
+      [0, H],
+    ];
+  }, [proj, maxL, minO]);
+
+  // Bathymetry depth contours (seabed relief below the water line).
+  const bathy = useMemo(() => {
+    const seedPts = [
+      [W * 0.42, H * 0.3],
+      [W * 0.62, H * 0.4],
+      [W * 0.78, H * 0.62],
+      [W * 0.6, H * 0.78],
+    ];
+    return [0, 1, 2, 3].map((k) => {
+      const [bx, by] = seedPts[k % seedPts.length];
+      const r = 90 + k * 40;
+      let d = "";
+      for (let a = 0; a <= 360; a += 15) {
+        const rad = (a * Math.PI) / 180;
+        const wob = 1 + Math.sin(rad * 3 + k) * 0.12;
+        const x = bx + Math.cos(rad) * r * wob;
+        const y = by + Math.sin(rad) * r * (0.7 + Math.sin(rad) * 0.2);
+        d += `${a === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+      }
+      return `${d}Z`;
+    });
+  }, []);
+
+  const graticuleLats = useMemo(() => {
+    const lo = minO;
+    return Array.from({ length: 6 }, (_, i) => {
+      const la = minL + ((maxL - minL) * i) / 5;
+      return { la, p: proj(la, lo) };
+    });
+  }, [minL, maxL, minO, proj]);
+  const graticuleLons = useMemo(() => {
+    const la = minL;
+    return Array.from({ length: 6 }, (_, i) => {
+      const lo = minO + ((maxO - minO) * i) / 5;
+      return { lo, p: proj(la, lo) };
+    });
+  }, [minL, minO, maxO, proj]);
 
   return (
-    <section className="overflow-hidden rounded-none border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
-      <div className="flex items-center gap-3 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
-        <div className="mr-auto min-w-0">
-          <h2 className="font-mono text-xs font-bold text-[var(--color-ocean-text)]">MISSION CHART — MARTHA&apos;S VINEYARD</h2>
-          <p className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ocean-muted)]">
-            Every mark is a logged contact · click to inspect
-          </p>
+    <div className="space-y-4">
+      <div className="relative overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--ink)" }}>
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--ink)" }}>
+          <div>
+            <h3 style={{ fontFamily: "var(--f-display)", fontWeight: 700, fontSize: "15px", color: "var(--ink)" }}>
+              Survey Map
+            </h3>
+            <p style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
+              Bristol Channel · datum WGS-84
+            </p>
+          </div>
+          <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
+            {targets.length} geotagged target{targets.length !== 1 ? "s" : ""}
+          </span>
         </div>
-        <span className="hidden font-mono text-[10px] tracking-widest text-[var(--color-ocean-muted)] md:inline">
-          SURVEY L04 · USGS 07011
-        </span>
-        <span className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-2 py-0.5 font-mono text-[10px] tabular-nums text-[var(--color-ocean-sky)]">
-          {clock}
-        </span>
-      </div>
 
-      <div className="relative">
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Mission chart">
+        <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" role="img" aria-label="Survey map">
           <defs>
-            <marker id="arrowInk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="rgba(255,255,255,0.4)" />
+            <pattern id="graticule" width="60" height="60" patternUnits="userSpaceOnUse">
+              <path d="M60 0H0V60" fill="none" stroke="#5A6A70" strokeWidth="0.4" opacity="0.14" />
+            </pattern>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#141414" />
             </marker>
           </defs>
 
-          <rect width={W} height={H} fill="#080E18" />
+          {/* Water bed */}
+          <rect width={W} height={H} fill={WATER} />
+          <rect width={W} height={H} fill="url(#graticule)" />
+          <path d={`M0 ${H * 0.55} L${W} ${H * 0.5} L${W} ${H * 0.6} L0 ${H * 0.66} Z`} fill={WATER_DEEP} opacity="0.4" />
 
-          {lats.map((lat) => {
-            const p = proj(lat, LON_MIN);
-            return (
-              <g key={lat}>
-                <line x1={PAD} y1={p.y} x2={W - PAD} y2={p.y} stroke="rgba(139,233,253,0.08)" strokeWidth="1" />
-                <text x={6} y={p.y + 3} fontSize="8" fill="rgba(139,233,253,0.4)" fontFamily="monospace">
-                  {lat.toFixed(2)}°N
-                </text>
-              </g>
-            );
-          })}
-          {lons.map((lon) => {
-            const p = proj(LAT_MIN, lon);
-            return (
-              <g key={lon}>
-                <line x1={p.x} y1={PAD} x2={p.x} y2={H - PAD} stroke="rgba(139,233,253,0.08)" strokeWidth="1" />
-                <text x={p.x - 16} y={H - PAD + 12} fontSize="8" fill="rgba(139,233,253,0.4)" fontFamily="monospace">
-                  {Math.abs(lon).toFixed(2)}°W
-                </text>
-              </g>
-            );
-          })}
+          {/* Seabed depth contours */}
+          {bathy.map((d, i) => (
+            <path key={i} d={d} fill="none" stroke="#7A8C93" strokeWidth="1" opacity="0.35" />
+          ))}
 
-          <path
-            d={`M${W},${H * 0.28} C ${W * 0.93},${H * 0.22} ${W * 0.88},${H * 0.12} ${W * 0.9},0 L ${W},0 Z`}
-            fill="#0D1520"
-            stroke="rgba(139,233,253,0.2)"
-            strokeWidth="1"
-          />
-          <text x={W - 60} y={24} fontSize="8" fill="rgba(139,233,253,0.5)" fontFamily="monospace">
-            MARTHA&apos;S VINEYARD
-          </text>
+          {/* Land mass */}
+          <polygon points={shoreline.map(([x, y]) => `${x},${y}`).join(" ")} fill={LAND} stroke={LAND_LINE} strokeWidth="1.2" />
 
-          <path d="M60,180 C 220,240 420,300 620,330 C 690,342 730,360 750,392" fill="none" stroke="rgba(139,233,253,0.15)" strokeWidth="1" strokeDasharray="6 6" />
-          <path d="M50,340 C 240,380 480,430 700,470 C 730,476 745,484 752,496" fill="none" stroke="rgba(139,233,253,0.15)" strokeWidth="1" strokeDasharray="6 6" />
-          <text x="66" y="172" fontSize="8" fill="rgba(139,233,253,0.35)" fontFamily="monospace">−40 m</text>
-          <text x="56" y="332" fontSize="8" fill="rgba(139,233,253,0.35)" fontFamily="monospace">−80 m</text>
+          {/* Graticule labels */}
+          {graticuleLats.map(({ la, p }) => (
+            <text key={`la-${la}`} x={8} y={p.y + 3} fontSize="9" fill="#5A6A70" style={{ fontFamily: "var(--f-mono)" }}>
+              {la.toFixed(4)}°N
+            </text>
+          ))}
+          {graticuleLons.map(({ lo, p }) => (
+            <text key={`lo-${lo}`} x={p.x - 4} y={H - 8} fontSize="9" fill="#5A6A70" style={{ fontFamily: "var(--f-mono)" }}>
+              {Math.abs(lo).toFixed(4)}°W
+            </text>
+          ))}
 
-          <path d={pathD} fill="none" stroke="rgba(139,233,253,0.5)" strokeWidth="1.5" strokeDasharray="8 5" markerEnd="url(#arrowInk)" />
-          {(() => {
-            const s = trajectoryPts[0];
-            return (
-              <>
-                <circle cx={s.x} cy={s.y} r="4" fill="#080E18" stroke="rgba(139,233,253,0.6)" strokeWidth="1.5" />
-                <text x={s.x - 50} y={s.y - 10} fontSize="9" fill="rgba(139,233,253,0.6)" fontFamily="monospace">
-                  Launch · R/V Megan Miller
-                </text>
-              </>
-            );
-          })()}
-
-          {targets.map((t) => {
-            const p = proj(t.lat, t.lon);
-            const meta = SEVERITY_META[t.severity];
-            const isSel = t.id === selectedId;
-            const flipLabel = p.x > W - 170;
-            return (
-              <g key={t.id} transform={`translate(${p.x},${p.y})`} onClick={() => onSelect(t.id)} className="cursor-pointer">
-                {isSel && <circle r="14" fill="none" stroke={meta.stroke} strokeWidth="1.5" className="pin-pulse" />}
-                <line x1="0" y1="4" x2="0" y2="16" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-                <circle r={isSel ? 6 : 5} fill={meta.stroke} stroke="#080E18" strokeWidth="1.5" />
-                <path d="M-2,0 H2 M0,-2 V2" stroke="#ffffff" strokeWidth="1" />
-                <text
-                  x={flipLabel ? -10 : 10}
-                  y="4"
-                  fontSize="9"
-                  textAnchor={flipLabel ? "end" : "start"}
-                  fill={isSel ? meta.stroke : "rgba(255,255,255,0.7)"}
-                  fontFamily="monospace"
-                  fontWeight={isSel ? "bold" : "normal"}
-                  stroke="#080E18"
-                  strokeWidth="3"
-                  paintOrder="stroke"
-                >
-                  {t.id} · {Math.round(t.confidence * 100)}%
-                </text>
-              </g>
-            );
-          })}
-
-          <g transform={`translate(${W - 52},${H - 56})`}>
-            <circle r="18" fill="rgba(8,14,24,0.8)" stroke="rgba(139,233,253,0.3)" strokeWidth="1" />
-            <path d="M0,-12 L4,4 L0,1 L-4,4 Z" fill="rgba(139,233,253,0.6)" />
-            <text y="-24" fontSize="9" textAnchor="middle" fill="rgba(139,233,253,0.6)" fontFamily="monospace" fontWeight="bold">N</text>
+          {/* Survey vessel trackline + animated marker */}
+          <path id="surveypath" d={pathD} fill="none" stroke="#141414" strokeWidth="1.6" markerEnd="url(#arrow)" />
+          <g>
+            <polygon points="0,-9 7,6 0,1 -7,6" fill="#FF5A1F">
+              <animateMotion dur="14s" repeatCount="indefinite" rotate="auto">
+                <mpath href="#surveypath" />
+              </animateMotion>
+            </polygon>
           </g>
-          <g transform={`translate(${PAD},${H - 22})`}>
-            <line x1="0" y1="0" x2="48" y2="0" stroke="rgba(139,233,253,0.4)" strokeWidth="1.2" />
-            <line x1="0" y1="-3" x2="0" y2="3" stroke="rgba(139,233,253,0.4)" strokeWidth="1.2" />
-            <line x1="48" y1="-3" x2="48" y2="3" stroke="rgba(139,233,253,0.4)" strokeWidth="1.2" />
-            <text x="56" y="3" fontSize="8" fill="rgba(139,233,253,0.4)" fontFamily="monospace">≈ 500 m</text>
+
+          {/* Waypoint circles + IDs */}
+          {points.map(({ t, p }) => (
+            <g key={t.id} opacity={priorityOpacity(t.priority)}>
+              <circle cx={p.x} cy={p.y} r={t.priority === "P1" ? 8 : 6} fill="var(--signal)" stroke="#141414" strokeWidth="1.4" />
+              <text x={p.x + 11} y={p.y + 3} fontSize="10" fontWeight="700" fill="#141414" style={{ fontFamily: "var(--f-mono)" }}>
+                {t.id}
+              </text>
+            </g>
+          ))}
+
+          {/* Scale + compass */}
+          <g>
+            <line x1={W - 170} y1={H - 34} x2={W - 60} y2={H - 34} stroke="#141414" strokeWidth="1.4" />
+            <text x={W - 115} y={H - 21} textAnchor="middle" fontSize="8" fill="#5A6A70" style={{ fontFamily: "var(--f-mono)" }}>
+              250 M
+            </text>
+            <g transform={`translate(${W - 34} 60)`}>
+              <path d="M0 18 L0 -18 M-7 -9 L0 -20 L7 -9" fill="none" stroke="#141414" strokeWidth="1.2" />
+              <text x="0" y="-24" textAnchor="middle" fontSize="9" fill="#141414" style={{ fontFamily: "var(--f-mono)", fontWeight: 700 }}>
+                N
+              </text>
+            </g>
           </g>
         </svg>
 
-        <TechnicalGrid />
-
-        {(() => {
-          const auv = trajectoryPts[4];
-          if (!auv) return null;
-          return (
+        {/* Pin cards anchored to waypoints */}
+        <div className="pointer-events-none absolute inset-0">
+          {points.map(({ t, p }) => (
             <div
-              className="pointer-events-none absolute z-10 h-24 w-24 -translate-x-1/2 -translate-y-1/2"
-              style={{ left: `${(auv.x / W) * 100}%`, top: `${(auv.y / H) * 100}%` }}
+              key={t.id}
+              className="pointer-events-auto absolute -translate-x-1/2 -translate-y-[120%]"
+              style={{ left: `${(p.x / W) * 100}%`, top: `${(p.y / H) * 100}%` }}
             >
-              <SonarPingRipple className="h-full w-full" />
+              <div style={{ background: "var(--surface)", border: "1px solid var(--line-strong)", boxShadow: "0 6px 18px rgba(20,20,20,0.14)" }}>
+                <div className="flex gap-2 p-2 items-center">
+                  <PinThumb id={t.id} />
+                  <div>
+                    <p style={{ fontFamily: "var(--f-mono)", fontSize: "11px", fontWeight: 700, color: "var(--ink)" }}>{t.id}</p>
+                    <p style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>{t.class}</p>
+                    <p style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink)" }}>
+                      {Math.round(t.confidence * 100)}% · <b style={{ color: "var(--signal)" }}>{t.priority}</b>
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-          );
-        })()}
-
-        <div className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-none border border-[var(--color-ocean-border)] bg-[var(--color-ocean-slate)]/90 px-2 py-1 font-mono text-[9px] uppercase tracking-wide text-[var(--color-ocean-muted)] backdrop-blur">
-          <Navigation size={9} className="text-[var(--color-ocean-sky)]" /> Boat track · lawnmower sweep · 2 kn
+          ))}
         </div>
       </div>
-
-      <figcaption className="flex items-center justify-between border-t border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-1.5">
-        <span className="font-mono text-[10px] text-[var(--color-ocean-muted)]">Survey area with plotted contacts, line L04</span>
-        <span className="font-mono text-[9px] uppercase tracking-widest text-[var(--color-ocean-muted)]">Datum WGS-84</span>
-      </figcaption>
-    </section>
+    </div>
   );
 }

@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { ViewMode } from "@/lib/targets";
 
 const CANVAS_W = 1200;
 const CANVAS_H = 800;
+const NADIR_START = 0.46; // Nadir gap x extent (46% -> 54%)
+const NADIR_END = 0.54;
 
 function mulberry32(seed: number) {
   let s = seed;
@@ -16,61 +19,96 @@ function mulberry32(seed: number) {
   };
 }
 
-export function paintIdleSonar(ctx: CanvasRenderingContext2D, w = CANVAS_W, h = CANVAS_H) {
-  const rand = mulberry32(2026);
+export function paintSonarFrame(
+  ctx: CanvasRenderingContext2D,
+  mode: ViewMode,
+  w = CANVAS_W,
+  h = CANVAS_H,
+) {
+  const rand = mulberry32(mode === "denoised" ? 2027 : 2026);
 
-  const base = ctx.createLinearGradient(0, 0, w, h);
-  base.addColorStop(0, "#0A101C");
-  base.addColorStop(0.5, "#0C1422");
-  base.addColorStop(1, "#080D17");
-  ctx.fillStyle = base;
+  // Light paper bed — fits the Mono-Signal light theme.
+  const bed = ctx.createLinearGradient(0, 0, 0, h);
+  bed.addColorStop(0, "#EFEFEC");
+  bed.addColorStop(0.5, "#F2F2EF");
+  bed.addColorStop(1, "#EAEAE6");
+  ctx.fillStyle = bed;
   ctx.fillRect(0, 0, w, h);
 
-  // Acoustic waterfall banding — horizontal slow variation (side-scan SLAR).
-  // Neutral grey tones so the preview reads as a "raw" grayscale sonar.
-  for (let i = 0; i < 90; i++) {
-    const y = rand() * h;
-    const hgt = 6 + rand() * 26;
-    const amp = 0.02 + rand() * 0.05;
-    const tone = 120 + rand() * 90;
-    const grad = ctx.createLinearGradient(0, y, w, y);
-    grad.addColorStop(0, `rgba(${tone},${tone + 4},${tone + 6},${amp * 0.6})`);
-    grad.addColorStop(0.5, `rgba(${tone},${tone + 3},${tone + 5},${amp})`);
-    grad.addColorStop(1, `rgba(${tone},${tone + 4},${tone + 6},${amp * 0.6})`);
+  // Sinusoidal bed ripples — wide soft amplitude modulation of backscatter.
+  for (let i = 0; i < 26; i++) {
+    const y0 = rand() * h;
+    const amp = mode === "denoised" ? 0.05 : 0.09 + rand() * 0.08;
+    const tone = 196 + rand() * 24;
+    const grad = ctx.createLinearGradient(0, y0, w, y0);
+    grad.addColorStop(0, `rgba(${tone},${tone},${tone},${amp * 0.7})`);
+    grad.addColorStop(0.5, `rgba(${tone},${tone},${tone},${amp})`);
+    grad.addColorStop(1, `rgba(${tone},${tone},${tone},${amp * 0.7})`);
     ctx.fillStyle = grad;
-    ctx.fillRect(0, y, w, hgt);
+    // Sinusoidal edge so rows read as ripple crests
+    ctx.beginPath();
+    ctx.moveTo(0, y0);
+    for (let x = 0; x <= w; x += 8) {
+      ctx.lineTo(x, y0 + Math.sin(x * 0.02 + i) * 7);
+    }
+    ctx.lineTo(w, y0 + 22);
+    ctx.lineTo(0, y0 + 22);
+    ctx.closePath();
+    ctx.fill();
   }
 
-  // Fine speckle noise
+  // Side-scan speckle / grain noise
   const img = ctx.getImageData(0, 0, w, h);
   const d = img.data;
+  const grain = mode === "denoised" ? 12 : 30;
   for (let i = 0; i < d.length; i += 4) {
-    const n = (rand() - 0.5) * 34;
-    const v = Math.max(0, Math.min(255, d[i] + n));
-    d[i] = v;
-    d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + n));
-    d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + n));
+    const n = (rand() - 0.5) * grain;
+    for (let c = 0; c < 3; c++) {
+      d[i + c] = Math.max(0, Math.min(255, d[i + c] + n));
+    }
   }
   ctx.putImageData(img, 0, 0);
 
-  // Isolated pebble/rock returns with acoustic shadow
-  for (let i = 0; i < 26; i++) {
+  // Isolated debris pebbles with acoustic shadow (classic side-scan cues)
+  for (let i = 0; i < 34; i++) {
     const x = rand() * w;
     const y = rand() * h;
-    const r = 1.4 + rand() * 2.6;
-    ctx.fillStyle = `rgba(190,195,205,${0.14 + rand() * 0.2})`;
+    const r = 2 + rand() * 4;
+    ctx.fillStyle = `rgba(80,80,76,${0.18 + rand() * 0.2})`;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "rgba(1,3,7,0.4)";
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
     ctx.beginPath();
-    ctx.ellipse(x + r * 3, y + 1.2, r * 3.4, r * 0.9, 0, 0, Math.PI * 2);
+    ctx.ellipse(x - r * 2.6, y, r * 3, r * 1.1, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // Coordinate graticules — fine grid markings
-  ctx.strokeStyle = "rgba(139,233,253,0.12)";
+  // Nadir gap — vertical acoustic blank beneath the towfish (46% -> 54%).
+  // Darker vertical blank, soft falloff into each channel.
+  const nx0 = w * NADIR_START;
+  const nx1 = w * NADIR_END;
+  const nadir = ctx.createLinearGradient(nx0, 0, nx1, 0);
+  nadir.addColorStop(0, "rgba(160,160,156,0.0)");
+  nadir.addColorStop(0.5, "rgba(120,120,116,0.5)");
+  nadir.addColorStop(1, "rgba(160,160,156,0.0)");
+  ctx.fillStyle = nadir;
+  ctx.fillRect(nx0, 0, w * (NADIR_END - NADIR_START), h);
+
+  // Nadir guide lines
+  ctx.strokeStyle = "rgba(20,20,20,0.18)";
   ctx.lineWidth = 1;
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  ctx.moveTo(nx0, 0);
+  ctx.lineTo(nx0, h);
+  ctx.moveTo(nx1, 0);
+  ctx.lineTo(nx1, h);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Graticule
+  ctx.strokeStyle = "rgba(20,20,20,0.06)";
   for (let gx = 0; gx <= w; gx += w / 8) {
     ctx.beginPath();
     ctx.moveTo(gx, 0);
@@ -84,55 +122,25 @@ export function paintIdleSonar(ctx: CanvasRenderingContext2D, w = CANVAS_W, h = 
     ctx.stroke();
   }
 
-  // Crosshair + coordinate readout
-  ctx.strokeStyle = "rgba(139,233,253,0.28)";
-  ctx.lineWidth = 1;
-  ctx.setLineDash([6, 6]);
-  ctx.beginPath();
-  ctx.moveTo(w / 2, 0);
-  ctx.lineTo(w / 2, h);
-  ctx.moveTo(0, h / 2);
-  ctx.lineTo(w, h / 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  ctx.fillStyle = "rgba(139,233,253,0.55)";
-  ctx.font = "12px monospace";
-  ctx.textAlign = "center";
-  ctx.fillText("15°24'32\"N / 73°47'20\"E", w / 2, h / 2 - 14);
-
-  // Vignette
+  // Subtle vignette
   const vig = ctx.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, w * 0.66);
-  vig.addColorStop(0, "rgba(0,0,0,0)");
-  vig.addColorStop(1, "rgba(2,4,8,0.65)");
+  vig.addColorStop(0, "rgba(20,20,20,0)");
+  vig.addColorStop(1, "rgba(20,20,20,0.08)");
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, w, h);
 }
 
-export default function SonarPreview({
-  opacity = 0.28,
-  label = "IDLE · SONAR WATERFALL PREVIEW",
-}: {
-  opacity?: number;
-  label?: string;
-}) {
+export default function SonarCanvas({ mode = "raw" as ViewMode }: { mode?: ViewMode }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    if (ctx) paintIdleSonar(ctx);
-  }, []);
+    if (ctx) paintSonarFrame(ctx, mode);
+  }, [mode]);
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ opacity }}>
-      <canvas ref={ref} width={CANVAS_W} height={CANVAS_H} className="absolute inset-0 h-full w-full" />
-      {label && (
-        <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.3em] text-[var(--color-ocean-sky)]/40">
-          {label}
-        </span>
-      )}
-    </div>
+    <canvas ref={ref} width={CANVAS_W} height={CANVAS_H} className="absolute inset-0 h-full w-full" />
   );
 }

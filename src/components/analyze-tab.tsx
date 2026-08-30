@@ -1,775 +1,655 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
-import { ChevronRight, Compass, Image as ImageIcon, CircleCheck, CircleX, MousePointer2, Check, X, StickyNote, Stamp } from "lucide-react";
-import TelemetryCard from "@/components/telemetry-card";
-import { SEVERITY_META, swathPosition, estimateSurveyAreaSqm, type SonarTarget, type ViewMode, type DetectionStatus } from "@/lib/targets";
-import { EmptyState } from "@/components/analyze-tab-empty";
-import SonarPreview from "@/components/sonar-preview";
-import AcousticIntensityProfile from "@/components/acoustic-intensity-profile";
-import RadialGainDial from "@/components/radial-gain-dial";
-import SwathCone, { coneColorForSeverity } from "@/components/swath-cone";
+import { useMemo, useState } from "react";
+import SonarCanvas from "@/components/sonar-preview";
+import { toCsv, toGeoJSON, downloadText, type SonarTarget, type ViewMode, type Priority } from "@/lib/targets";
 
-interface UploadedImage {
-  name: string;
-  url: string;
-  targetCount: number;
+function priorityBadge(p: Priority) {
+  if (p === "P1")
+    return {
+      background: "var(--signal)",
+      color: "#FFFFFF",
+      border: "1px solid var(--signal)",
+    };
+  if (p === "P2")
+    return {
+      background: "var(--signal-dim)",
+      color: "var(--ink)",
+      border: "1px solid var(--signal)",
+    };
+  return {
+    background: "transparent",
+    color: "var(--ink)",
+    border: "1px solid var(--line-strong)",
+  };
 }
 
-interface AnalyzeTabProps {
-  targets: (SonarTarget & { detectionStatus: DetectionStatus })[];
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
-  onGoAcquire: () => void;
-  uploadedImages: UploadedImage[];
-  selectedImageUrl: string | null;
-  onSelectImage: (url: string) => void;
-  onNoteChange: (id: string, note: string) => void;
-  onStatusChange: (id: string, status: DetectionStatus) => void;
+/* Acoustic intensity model — a base seabed signal with a labelled spike
+   raised at each detected object's horizontal position. */
+const PROFILE_LEN = 64;
+const DB_MIN = -60;
+const DB_MAX = 0;
+
+function mulberry32(seed: number) {
+  let s = seed;
+  return () => {
+    s |= 0;
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
-function BoundingBoxOverlay({
-  targets,
-  selectedId,
-  onBoxClick,
-  onDeselect,
+function baseSignal(count: number, seed: number): number[] {
+  const rand = mulberry32(seed);
+  const arr: number[] = [];
+  let carry = 0.3;
+  for (let i = 0; i < count; i++) {
+    carry = 0.6 * carry + 0.4 * (0.2 + rand() * 0.4);
+    arr.push(Math.max(0.08, Math.min(0.75, carry)));
+  }
+  return arr;
+}
+
+interface Spike {
+  t: SonarTarget;
+  col: number;
+  v: number;
+  color: string;
+}
+
+function buildSpikes(targets: SonarTarget[]): Spike[] {
+  return targets.map((t) => {
+    const col = Math.min(
+      PROFILE_LEN - 1,
+      Math.max(0, Math.floor(((t.box.x + t.box.w / 2) / 100) * PROFILE_LEN)),
+    );
+    const v = Math.min(1, 0.55 + t.confidence * 0.45);
+    return {
+      t,
+      col,
+      v,
+      color: t.priority === "P2" ? "#E0912C" : "#141414",
+    };
+  });
+}
+
+/* Simple line graph of the acoustic profile. The Y axis spans DB_MIN..DB_MAX,
+   the X axis is the across-track sample index (Port..Stbd), and a marker follows
+   the cursor's horizontal position over the sonar frame above. */
+function AcousticLineGraph({
+  wave,
+  spikes,
+  cursorX,
 }: {
-  targets: (SonarTarget & { detectionStatus: DetectionStatus })[];
-  selectedId: string | null;
-  onBoxClick: (id: string) => void;
-  onDeselect: () => void;
+  wave: number[];
+  spikes: Spike[];
+  cursorX: number | null;
 }) {
-  return (
-    <div
-      className="absolute inset-0"
-      style={{ pointerEvents: "auto" }}
-      onPointerDown={(e) => { if (e.target === e.currentTarget) onDeselect(); }}
-    >
-      {targets.map((t) => {
-        const meta = SEVERITY_META[t.severity];
-        const isFP = t.detectionStatus === "false_positive";
-        const stroke = isFP ? "#A8B4BD" : meta.stroke;
-        const fill = isFP ? "rgba(168,180,189,0.05)" : meta.fill;
-        const isSelected = t.id === selectedId;
-        // During slew-to-cue focus, dim every non-selected box so there is no
-        // ambiguity about which target the viewport has slewed onto.
-        const dimmed = selectedId != null && !isSelected;
-        return (
-          <div
-            key={t.id}
-            onClick={(e) => { e.stopPropagation(); onBoxClick(t.id); }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className={`absolute cursor-pointer transition-opacity duration-300 ${dimmed ? "opacity-60" : "opacity-100"}`}
-            style={{
-              left: `${t.box.x}%`,
-              top: `${t.box.y}%`,
-              width: `${t.box.w}%`,
-              height: `${t.box.h}%`,
-            }}
-          >
-            <div
-              className="absolute inset-0 transition-all"
-              style={{
-                borderColor: stroke,
-                // Light fill so the underlying acoustic texture/shadow stays visible
-                backgroundColor: fill,
-                borderStyle: isSelected ? "solid" : "dashed",
-                borderWidth: "1.5px",
-                boxShadow: isSelected
-                  ? `0 0 0 1px ${stroke}66, 0 0 12px ${stroke}66`
-                  : `0 0 6px ${stroke}33`,
-              }}
-            />
-            {!dimmed && (
-              <div
-                className="absolute -top-5 left-0 whitespace-nowrap font-mono text-[10px] font-bold px-1 border"
-                style={{
-                  color: stroke,
-                  backgroundColor: "rgba(6,11,18,0.85)",
-                  borderColor: `${stroke}55`,
-                }}
-              >
-                {t.label} [{Math.round(t.confidence * 100)}%]{t.detectionStatus === "confirmed" ? " ✓" : t.detectionStatus === "false_positive" ? " ✗" : ""}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+  const H = 170;
+  const TOP_PAD = 12;
+  const BOT_PAD = 14;
+  const toY = (v: number) => H - BOT_PAD - v * (H - TOP_PAD - BOT_PAD);
+  const xPct = (i: number) => (i / (wave.length - 1)) * 100;
+  const points = wave.map((v, i) => `${xPct(i)},${toY(v)}`).join(" ");
 
-function DepthRuler({ maxDepth = 60 }: { maxDepth?: number }) {
-  const ticks = Array.from({ length: 7 }, (_, i) => Math.round((maxDepth / 6) * (6 - i)));
+  // Wave value at the cursor's fractional x (interpolated).
+  const [cursorY, cursorV] = (() => {
+    if (cursorX === null) return [null, null] as const;
+    const col = (cursorX / 100) * (wave.length - 1);
+    const lo = Math.floor(col);
+    const hi = Math.min(wave.length - 1, lo + 1);
+    const frac = col - lo;
+    const v = wave[lo] + (wave[hi] - wave[lo]) * frac;
+    return [toY(v), v] as const;
+  })();
+
   return (
-    <div className="col-start-1 row-start-1 flex flex-col items-stretch border-r border-[#2A4158] bg-[#0B1726]">
-      <p className="px-1 pt-1 font-mono text-[7px] uppercase tracking-widest text-[#7FD9CD]/70 [writing-mode:vertical-rl]">
-        DEPTH · M
-      </p>
-      <div className="relative flex flex-1 flex-col items-stretch justify-between py-1 font-mono">
-        {ticks.map((m, i) => (
-          <div key={m} className="flex items-center">
-            <span className={`px-1 text-[8px] tabular-nums ${i === 0 ? "text-[#FFB86C]" : "text-[#7FD9CD]/85"}`}>{m}</span>
-            <span className="h-px w-1.5 bg-[#8BE9FD]/40" />
-          </div>
+    <div className="flex gap-3 px-4 py-4" style={{ background: "var(--surface-2)" }}>
+      <div
+        className="flex h-[170px] flex-col justify-between text-right"
+        style={{ fontFamily: "var(--f-mono)", fontSize: "9px", color: "var(--ink-soft)", width: "34px" }}
+      >
+        {[0, 1, 2, 3, 4].map((i) => (
+          <span key={i}>{Math.round(DB_MAX - (i / 4) * (DB_MAX - DB_MIN))}</span>
         ))}
+      </div>
+
+      <div className="relative min-w-0 flex-1" style={{ borderLeft: "1px solid var(--line-strong)", borderBottom: "1px solid var(--line-strong)" }}>
+        <svg
+          className="block w-full"
+          width="100%"
+          height={H}
+          viewBox={`0 0 100 ${H}`}
+          preserveAspectRatio="none"
+        >
+        {/* horizontal gridlines */}
+        {[25, 50, 75].map((p) => (
+          <line
+            key={p}
+            x1="0"
+            x2="100"
+            y1={H - BOT_PAD - (p / 100) * (H - TOP_PAD - BOT_PAD)}
+            y2={H - BOT_PAD - (p / 100) * (H - TOP_PAD - BOT_PAD)}
+            stroke="var(--line)"
+            strokeWidth="0.35"
+            strokeDasharray="1.5 1.5"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+
+        {/* area + line of the profile */}
+        <polygon
+          points={`0,${H - BOT_PAD} ${points} 100,${H - BOT_PAD}`}
+          fill="var(--signal)"
+          opacity="0.10"
+        />
+        <polyline
+          points={points}
+          fill="none"
+          stroke="var(--ink)"
+          strokeWidth="0.7"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {/* spike dots — one per detected contact */}
+        {spikes.map((s) => (
+          <g key={s.t.id}>
+            <circle
+              cx={xPct(s.col)}
+              cy={toY(s.v)}
+              r="1.6"
+              fill={s.color}
+              vectorEffect="non-scaling-stroke"
+            />
+            <text
+              x={xPct(s.col)}
+              y={toY(s.v) - 4}
+              textAnchor="middle"
+              fontSize="2.6"
+              fill="var(--ink)"
+              vectorEffect="non-scaling-stroke"
+              style={{ fontFamily: "var(--f-mono)", fontWeight: 700 }}
+            >
+              {s.t.id}
+            </text>
+          </g>
+        ))}
+
+        {/* cursor marker — follows the mouse over the frame above */}
+        {cursorX !== null && cursorY !== null && (
+          <g>
+            <line
+              x1={cursorX}
+              x2={cursorX}
+              y1="0"
+              y2={H}
+              stroke="var(--signal)"
+              strokeWidth="0.5"
+              opacity="0.85"
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle
+              cx={cursorX}
+              cy={cursorY}
+              r="2"
+              fill="var(--signal)"
+              vectorEffect="non-scaling-stroke"
+            />
+          </g>
+        )}
+      </svg>
+
+      {cursorX !== null && cursorV !== null && (
+        <div
+          className="pointer-events-none absolute z-10"
+          style={{
+            left: `${cursorX}%`,
+            top: 6,
+            transform: "translateX(10px)",
+            background: "var(--surface)",
+            border: "1px solid var(--line-strong)",
+            padding: "3px 7px",
+            fontFamily: "var(--f-mono)",
+            fontSize: "10px",
+            color: "var(--ink)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {Math.round(DB_MIN + cursorV * (DB_MAX - DB_MIN))} dB
+        </div>
+      )}
       </div>
     </div>
   );
 }
 
-function SwathRuler() {
-  return (
-    <div className="col-start-2 row-start-2 flex items-center justify-between border-t border-[#2A4158] bg-[#0B1726] px-2 font-mono">
-      {["-25M", "-12.5M", "NADIR", "+12.5M", "+25M"].map((l, i) => (
-        <span key={l} className={`text-[8px] tabular-nums ${i === 2 ? "font-bold text-[#8BE9FD]" : "text-[#7FD9CD]/85"}`}>
-          {i === 2 ? "● " : ""}{l}
-        </span>
-      ))}
-    </div>
-  );
+interface FrameViewProps {
+  targets: SonarTarget[];
+  onGoMap: () => void;
 }
 
-export default function AnalyzeTab({
-  targets,
-  selectedId,
-  onSelect,
-  onGoAcquire,
-  uploadedImages,
-  selectedImageUrl,
-  onSelectImage,
-  onNoteChange,
-  onStatusChange,
-}: AnalyzeTabProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>("raw");
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [splitPos, setSplitPos] = useState(50);
-  const [isDragging, setIsDragging] = useState(false);
-  const [hoverPos, setHoverPos] = useState<{ x: number | null; y: number | null }>({ x: null, y: null });
-  const [verifyPulseId, setVerifyPulseId] = useState<string | null>(null);
-  const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Confidence gate — radial dial filters which contacts are exposed.
-  const [confGate, setConfGate] = useState(0);
-  // Zoomed-in slew target. Only set by an explicit click (box / register row),
-  // never by selection alone, so the viewport always loads zoomed-out.
-  const [focusId, setFocusId] = useState<string | null>(null);
-  // The record is a fixed capture — stamp the time it was presented once.
-  const [capturedAt] = useState(() => {
-    const d = new Date();
-    return [String(d.getUTCHours()).padStart(2, "0"), String(d.getUTCMinutes()).padStart(2, "0"), String(d.getUTCSeconds()).padStart(2, "0")].join(":");
-  });
+export default function FrameView({ targets, onGoMap }: FrameViewProps) {
+  const [mode, setMode] = useState<ViewMode>("raw");
+  const [showAttention, setShowAttention] = useState(false); // default OFF
+  const [threshold, setThreshold] = useState(0);
+  const [cursorX, setCursorX] = useState<number | null>(null); // cursor % across the stage
+  const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
 
-  const hasUploads = uploadedImages.length > 0;
-  const displayTargets = useMemo(
-    () =>
-      selectedImageUrl
-        ? targets.filter((t) => t.imageUrl === selectedImageUrl)
-        : targets,
-    [targets, selectedImageUrl],
-  );
-  const gatedTargets = useMemo(
-    () => displayTargets.filter((t) => t.confidence * 100 >= confGate),
-    [displayTargets, confGate],
-  );
-  const selectedTarget = displayTargets.find((t) => t.id === selectedId);
-
-  // Slew-to-cue: when the operator CLICKS a target (box or register row), centre
-  // + zoom the viewport onto its box. Passing selection alone (from upload/scan)
-  // does NOT zoom — the viewport always loads zoomed-out until the user clicks.
-  // ox/oy are the numeric center in image % (0..100); the % strings are derived
-  // only for CSS. The numeric values are used to invert the transform so hover
-  // coordinates can be reported back in image space. Memoised so the hover
-  // useCallback dependency stays stable.
-  const focusTarget = gatedTargets.find((t) => t.id === focusId) ?? null;
-  const slew = useMemo(
-    () =>
-      focusTarget
-        ? {
-            id: focusTarget.id,
-            ox: focusTarget.box.x + focusTarget.box.w / 2,
-            oy: focusTarget.box.y + focusTarget.box.h / 2,
-            oxPct: `${focusTarget.box.x + focusTarget.box.w / 2}%`,
-            oyPct: `${focusTarget.box.y + focusTarget.box.h / 2}%`,
-            scale: 1.5,
-          }
-        : null,
-    [focusTarget],
+  const shown = useMemo(
+    () => targets.filter((t) => Math.round(t.confidence * 100) >= threshold),
+    [targets, threshold],
   );
 
-  const confirmedCount = gatedTargets.filter((t) => t.detectionStatus === "confirmed").length;
-  const falsePositiveCount = gatedTargets.filter((t) => t.detectionStatus === "false_positive").length;
-  const pendingCount = gatedTargets.filter((t) => t.detectionStatus === "pending").length;
+  // The real sonar image (uploaded, or the model-annotated sample frame).
+  const sourceImage = useMemo(() => targets.find((t) => t.imageUrl)?.imageUrl, [targets]);
+  const showRealImage = mode === "original" && !!sourceImage;
 
-  const manifest = useMemo(() => {
-    const high = displayTargets.filter((t) => t.severity === "high").length;
-    const medium = displayTargets.filter((t) => t.severity === "medium").length;
-    const low = displayTargets.filter((t) => t.severity === "low").length;
-    return { areaSqm: estimateSurveyAreaSqm(uploadedImages.length), high, medium, low, total: displayTargets.length };
-  }, [displayTargets, uploadedImages.length]);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
-      if (gatedTargets.length === 0) return;
-      const idx = gatedTargets.findIndex((t) => t.id === selectedId);
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-        e.preventDefault();
-        const next = idx < gatedTargets.length - 1 ? idx + 1 : 0;
-        onSelect(gatedTargets[next].id);
-      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-        e.preventDefault();
-        const prev = idx > 0 ? idx - 1 : gatedTargets.length - 1;
-        onSelect(gatedTargets[prev].id);
+  // Acoustic profile: seabed signal + a labelled spike at each object.
+  const spikes = useMemo(() => buildSpikes(targets), [targets]);
+  const wave = useMemo(() => {
+    const arr = baseSignal(PROFILE_LEN, 4242);
+    spikes.forEach((s) => {
+      for (let k = -1; k <= 1; k++) {
+        const i = s.col + k;
+        if (i >= 0 && i < arr.length) arr[i] = Math.max(arr[i], s.v);
       }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [gatedTargets, selectedId, onSelect]);
+    });
+    return arr;
+  }, [spikes]);
 
-  const handleBoxClick = useCallback((id: string) => {
-    onSelect(id === selectedId ? null : id);
-    setFocusId(id === focusId ? null : id);
-  }, [onSelect, selectedId, focusId]);
-
-  const handleDeselect = useCallback(() => {
-    onSelect(null);
-    setFocusId(null);
-  }, [onSelect]);
-
-  // Report the cursor as IMAGE-space percent (0..100) so it lines up with the
-  // target boxes / intensity profile even when the viewport is zoomed. Under a
-  // slew transform (scale about image center ox,oy), a viewport fraction v maps
-  // back to image fraction as ox + (v - ox)/scale.
-  const handleViewportHover = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    let vx = ((e.clientX - rect.left) / rect.width) * 100;
-    let vy = ((e.clientY - rect.top) / rect.height) * 100;
-    if (slew) {
-      vx = slew.ox + (vx - slew.ox) / slew.scale;
-      vy = slew.oy + (vy - slew.oy) / slew.scale;
-    }
-    setHoverPos({ x: Math.max(0, Math.min(100, vx)), y: Math.max(0, Math.min(100, vy)) });
-  }, [slew]);
-
-  const handleViewportLeave = useCallback(() => setHoverPos({ x: null, y: null }), []);
-
-  const handleConfirm = useCallback(
-    (id: string) => {
-      onStatusChange(id, "confirmed");
-      setVerifyPulseId(id);
-      if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
-      verifyTimerRef.current = setTimeout(() => setVerifyPulseId(null), 650);
-    },
-    [onStatusChange],
-  );
-
-  const handleSplitDrag = useCallback(
-    (e: React.MouseEvent | React.TouchEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-      const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-      setSplitPos(pct);
-    },
-    [],
-  );
-
-  const handleSplitDown = useCallback(
-    (e: React.MouseEvent | React.TouchEvent) => {
-      setIsDragging(true);
-      handleSplitDrag(e);
-    },
-    [handleSplitDrag],
-  );
-
-  const handleSplitMove = useCallback(
-    (e: React.MouseEvent | React.TouchEvent) => {
-      if (isDragging) handleSplitDrag(e);
-    },
-    [isDragging, handleSplitDrag],
-  );
-
-  const handleSplitUp = useCallback(() => setIsDragging(false), []);
-
-  const viewModes: { key: ViewMode; label: string }[] = [
-    { key: "raw", label: "Raw Sonar" },
-    { key: "boxes", label: "Bounding Boxes" },
-    ...(selectedImageUrl && displayTargets.length > 0 ? [{ key: "compare" as ViewMode, label: "Compare" } as const] : []),
-  ];
-
-  if (!hasUploads && targets.length === 0) {
+  if (targets.length === 0) {
     return (
-      <EmptyState
-        icon={<Compass size={24} />}
-        title="Nothing to analyse yet"
-        body="Upload a sonar survey — the AI will detect debris and show results here."
-        cta="Upload Survey"
-        onCta={onGoAcquire}
-      />
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <p style={{ fontFamily: "var(--f-display)", fontSize: "22px", fontWeight: 700, color: "var(--ink)" }}>
+          No survey frame loaded
+        </p>
+        <p className="mt-2 max-w-md" style={{ color: "var(--ink-soft)", fontSize: "14px" }}>
+          Load a sonar log or a sample survey to run detection and inspect the frame.
+        </p>
+        <button
+          onClick={onGoMap}
+          className="mt-6"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--ink)",
+            color: "var(--ink)",
+            padding: "11px 22px",
+            fontFamily: "var(--f-mono)",
+            fontSize: "13px",
+            cursor: "pointer",
+          }}
+        >
+          Load a survey
+        </button>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {displayTargets.length > 0 && (
-        <div className="flex items-center gap-4 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] px-4 py-2.5 font-mono text-[10px]">
-          <span className="text-[#7D8590] uppercase tracking-wider">Inspector:</span>
-          <span className="flex items-center gap-1.5 text-[#8BE9FD]">
-            <span className="h-1.5 w-1.5 bg-[#8BE9FD]" />
-            {confirmedCount} confirmed
-          </span>
-          <span className="flex items-center gap-1.5 text-[#FF5555]">
-            <span className="h-1.5 w-1.5 bg-[#FF5555]" />
-            {falsePositiveCount} false positive
-          </span>
-          <span className="flex items-center gap-1.5 text-[#7D8590]">
-            <span className="h-1.5 w-1.5 bg-[#7D8590]" />
-            {pendingCount} pending
-          </span>
-          <span className="ml-auto text-[#7D8590]/70">← → to cycle</span>
-        </div>
-      )}
-
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_372px]">
-        <div className="min-w-0">
-          <section className="overflow-hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
-            <div className="flex items-center gap-3 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
-              <div className="mr-auto min-w-0">
-                <h2 className="font-display text-sm font-semibold tracking-wide text-[#E6EDF3]">ACOUSTIC VIEWPORT</h2>
-                <p className="truncate font-mono text-[9px] uppercase tracking-[0.14em] text-[#7D8590]">
-                  {selectedImageUrl
-                    ? `CAPTURED RECORD · ${uploadedImages.find((i) => i.url === selectedImageUrl)?.name ?? "uploaded image"} · ${gatedTargets.length} detection${gatedTargets.length !== 1 ? "s" : ""}`
-                    : "Upload a survey frame to analyse"}
-                </p>
-              </div>
-
-              {hasUploads && (
-                <div className="flex border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
-                  {viewModes.map((m) => (
-                    <button
-                      key={m.key}
-                      onClick={() => setViewMode(m.key)}
-                      className={`px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider transition ${
-                        viewMode === m.key
-                          ? "bg-[#8BE9FD] text-[#0D1117]"
-                          : "text-[#7D8590] hover:text-[#E6EDF3]"
-                      }`}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="relative grid h-[380px] select-none overflow-hidden bg-[var(--color-ocean-console)] sm:h-[440px] grid-cols-[30px_1fr] grid-rows-[1fr_24px]">
-              <DepthRuler />
-              <SwathRuler />
-              <div className="col-start-1 row-start-2 flex items-center justify-center border-r border-t border-[#2A4158] bg-[#0B1726]">
-                <span className="font-mono text-[7px] uppercase tracking-widest text-[#7FD9CD]/50">X-RANGE</span>
-              </div>
-
-              <div
-                ref={containerRef}
-                className="relative col-start-2 row-start-1 overflow-hidden"
-                onMouseMove={(e) => {
-                  handleSplitMove(e);
-                  handleViewportHover(e);
-                }}
-                onMouseUp={handleSplitUp}
-                onMouseLeave={() => {
-                  handleSplitUp();
-                  handleViewportLeave();
-                }}
-                onTouchMove={handleSplitMove}
-                onTouchEnd={handleSplitUp}
-              >
-                {selectedImageUrl ? (
-                  <div
-                    key={slew?.id ?? "nofocus"}
-                    className={`absolute inset-0 ${slew ? "slew-focus" : ""}`}
-                    style={
-                      slew
-                        ? {
-                            transform: `scale(${slew.scale})`,
-                            transformOrigin: `${slew.oxPct} ${slew.oyPct}`,
-                            "--slew-ox": slew.oxPct,
-                            "--slew-oy": slew.oyPct,
-                          } as React.CSSProperties
-                        : undefined
-                    }
-                  >
-                    {viewMode === "compare" ? (
-                      <>
-                        <Image
-                          src={selectedImageUrl}
-                          alt="Uploaded sonar"
-                          fill
-                          unoptimized
-                          priority
-                          className="object-fill"
-                        />
-                        <div
-                          className="absolute inset-0 overflow-hidden"
-                          style={{ clipPath: `inset(0 ${100 - splitPos}% 0 0)` }}
-                        >
-                          <BoundingBoxOverlay targets={gatedTargets} selectedId={selectedId} onBoxClick={handleBoxClick} onDeselect={handleDeselect} />
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <Image
-                          src={selectedImageUrl}
-                          alt="Uploaded sonar"
-                          fill
-                          unoptimized
-                          priority
-                          className="object-fill"
-                        />
-                        {viewMode === "boxes" && (
-                          <BoundingBoxOverlay targets={gatedTargets} selectedId={selectedId} onBoxClick={handleBoxClick} onDeselect={handleDeselect} />
-                        )}
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <SonarPreview opacity={0.3} label="IDLE · SELECT A SURVEY FRAME TO ANALYSE" />
-                    <div className="absolute inset-0 grid place-items-center bg-[var(--color-ocean-card)]/40 p-4">
-                      <div className="max-w-sm border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] p-6 text-center glow-border">
-                        <span className="mx-auto flex h-11 w-11 items-center justify-center border border-[#8BE9FD]/40 bg-[#8BE9FD]/10 text-[var(--color-ocean-sky)]">
-                          <ImageIcon size={22} />
-                        </span>
-                        <h3 className="mt-3 font-display text-sm font-semibold text-[#E6EDF3]">No image selected</h3>
-                        <p className="mt-1.5 font-sans text-[11px] leading-relaxed text-[#7D8590]">
-                          Select an uploaded image from the list to view detections.
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {slew && (
-                  <div
-                    className="slew-dim pointer-events-none absolute inset-0"
-                    style={{
-                      background: `radial-gradient(circle at ${slew.oxPct} ${slew.oyPct}, transparent 0%, transparent 24%, rgba(2,4,8,0.66) 52%, rgba(2,4,8,0.86) 100%)`,
-                    }}
-                  />
-                )}
-
-                {viewMode !== "compare" && (
-                  <div className="pointer-events-none absolute left-2 top-2 z-10 border bg-[var(--color-ocean-card)]/90 px-2 py-1 font-mono text-[9px] tracking-wider text-[#E6EDF3] backdrop-blur">
-                    {viewMode === "raw" ? (
-                      <span className="text-[#8BE9FD]">[CAPTURED RECORD // UTC {capturedAt}]</span>
-                    ) : (
-                      "CLICK BOX TO INSPECT"
-                    )}
-                  </div>
-                )}
-                {viewMode === "compare" && (
-                  <div className="pointer-events-none absolute left-2 top-2 z-10 border bg-[var(--color-ocean-card)]/90 px-2 py-1 font-mono text-[9px] tracking-wider text-[#8BE9FD]">
-                    [CAPTURED RECORD // UTC {capturedAt}] · DRAG TO COMPARE
-                  </div>
-                )}
-
-                {viewMode === "compare" && (
-                  <div
-                    className="absolute top-0 z-20 flex h-full w-8 -translate-x-1/2 cursor-col-resize flex-col items-center"
-                    style={{ left: `${splitPos}%` }}
-                    onMouseDown={handleSplitDown}
-                    onTouchStart={handleSplitDown}
-                  >
-                    <div className="h-full w-0.5 bg-[#8BE9FD] shadow-[0_0_8px_rgba(139,233,253,0.6)]" />
-                    <div className="absolute top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center border border-[#8BE9FD]/70 bg-[var(--color-ocean-card)]/95 shadow-lg -rotate-45">
-                      <MousePointer2 size={13} className="text-[#8BE9FD] -rotate-45" />
-                    </div>
-                  </div>
-                )}
-
-                <div className="scanlines pointer-events-none absolute inset-0" />
-              </div>
-            </div>
-
-            <AcousticIntensityProfile hover={hoverPos} targets={displayTargets} />
-
-            <div className="flex items-center justify-between border-t border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-1.5">
-              <span className="font-mono text-[9px] text-[#7D8590]">
-                {selectedImageUrl
-                  ? viewMode === "compare"
-                    ? "Drag slider to compare raw sonar vs AI detections"
-                    : "Fixed record — click a bounding box to inspect and annotate"
-                  : "Upload a survey to get started"}
-              </span>
-              <span className="font-mono text-[9px] uppercase tracking-widest text-[#7D8590]">
-                Datum WGS-84
-              </span>
-            </div>
-          </section>
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3"
+        style={{ background: "var(--surface)", border: "1px solid var(--line)", padding: "12px 16px" }}>
+        <div className="flex" style={{ border: "1px solid var(--line-strong)" }}>
+          {(["raw", "denoised", "original"] as ViewMode[]).map((m, i) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className="uppercase"
+              style={{
+                padding: "8px 16px",
+                fontSize: "12px",
+                letterSpacing: "0.08em",
+                fontFamily: "var(--f-mono)",
+                fontWeight: 600,
+                background: mode === m ? "var(--ink)" : "transparent",
+                color: mode === m ? "#FFFFFF" : "var(--ink-soft)",
+                borderLeft: i === 0 ? "none" : "1px solid var(--line-strong)",
+                cursor: "pointer",
+              }}
+            >
+              {m === "original" ? "Original" : m === "raw" ? "Raw" : "Denoised"}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowAttention((v) => !v)}
+            className="uppercase"
+            style={{
+              padding: "8px 16px",
+              fontSize: "12px",
+              letterSpacing: "0.08em",
+              fontFamily: "var(--f-mono)",
+              fontWeight: 600,
+              background: showAttention ? "var(--signal)" : "transparent",
+              color: showAttention ? "#FFFFFF" : "var(--ink-soft)",
+              borderLeft: "1px solid var(--line-strong)",
+              cursor: "pointer",
+            }}
+          >
+            Show Attention
+          </button>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-3 xl:sticky xl:top-3 xl:self-start xl:max-h-[calc(100vh-80px)] xl:overflow-y-auto">
-          {/* Survey Manifest — ruled ticket ledger */}
-          <section className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
-            <div className="flex items-center gap-3 border-b border-dashed border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
-              <div className="mr-auto min-w-0">
-                <h3 className="font-display text-xs font-semibold tracking-wide text-[#E6EDF3]">SURVEY MANIFEST</h3>
-                <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#7D8590]">
-                  ruled ledger · coordinate record
-                </p>
-              </div>
-              <span className="border border-[#8BE9FD]/30 bg-[#8BE9FD]/5 px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-widest text-[#8BE9FD]">
-                TKT-{String(manifest.total).padStart(3, "0")}
-              </span>
-            </div>
-
-            <div className="px-4 py-3">
-              <LedgerRow label="Area surveyed" value={`${manifest.areaSqm.toLocaleString()} m²`} />
-              <LedgerRow label="Total contacts" value={`${manifest.total}`} strong />
-              <div className="my-2 border-t border-dashed border-[var(--color-ocean-border)]" />
-              <LedgerRow label="High risk" value={`${manifest.high}`} valueClass="text-[#FF5555]" />
-              <LedgerRow label="Medium risk" value={`${manifest.medium}`} valueClass="text-[#FFB86C]" />
-              <LedgerRow label="Low risk" value={`${manifest.low}`} valueClass="text-[#8BE9FD]" />
-              <div className="my-2 border-t border-dashed border-[var(--color-ocean-border)]" />
-              <div className="-rotate-2 border-2 border-[#8BE9FD]/50 px-2 py-1 text-center font-mono text-[8px] font-bold uppercase tracking-[0.22em] text-[#8BE9FD]">
-                <Stamp size={9} className="mr-1 inline -translate-y-px" />
-                VERIFIED // AI-ASSISTED REVIEW REQUIRED
-              </div>
-            </div>
-          </section>
-
-          {/* Signal gate — radial gain */}
-          <section className="flex items-center gap-4 border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)] p-3">
-            <RadialGainDial value={confGate} onChange={setConfGate} label="CONF. GATE" size={86} />
-            <div className="min-w-0">
-              <p className="font-mono text-[10px] font-bold text-[#E6EDF3]">Confidence threshold</p>
-              <p className="mt-0.5 font-mono text-[9px] leading-relaxed text-[#7D8590]">
-                Only contacts scoring ≥ {confGate}% are exposed.
-              </p>
-              {confGate > 0 && gatedTargets.length < displayTargets.length && (
-                <p className="mt-1 font-mono text-[8px] uppercase tracking-wider text-[#FFB86C]">
-                  {displayTargets.length - gatedTargets.length} masked by gate
-                </p>
-              )}
-            </div>
-          </section>
-
-          {hasUploads && (
-            <section className="overflow-hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
-              <div className="border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
-                <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#E6EDF3]">UPLOADED IMAGES</h3>
-                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#7D8590]">
-                  {uploadedImages.length} file{uploadedImages.length !== 1 ? "s" : ""} · click to view
-                </p>
-              </div>
-              <ul className="divide-y divide-[var(--color-ocean-border)]">
-                {uploadedImages.map((img) => {
-                  const isSelected = img.url === selectedImageUrl;
-                  const hasDetections = img.targetCount > 0;
-                  return (
-                    <li key={img.url}>
-                      <button
-                        onClick={() => {
-                          setFocusId(null);
-                          onSelectImage(img.url);
-                        }}
-                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                          isSelected ? "bg-[var(--color-ocean-surface)]" : "hover:bg-[var(--color-ocean-surface)]/50"
-                        }`}
-                      >
-                        {hasDetections ? (
-                          <CircleCheck size={14} className="shrink-0 text-[#8BE9FD]" />
-                        ) : (
-                          <CircleX size={14} className="shrink-0 text-[#7D8590]/40" />
-                        )}
-                        <span className="min-w-0 flex-1">
-                          <span
-                            className={`block truncate font-mono text-xs ${isSelected ? "font-bold text-[#8BE9FD]" : "text-[#E6EDF3]"}`}
-                          >
-                            {img.name}
-                          </span>
-                          <span className="block font-mono text-[9px] tracking-wide text-[#7D8590]">
-                            {hasDetections
-                              ? `${img.targetCount} anomal${img.targetCount === 1 ? "y" : "ies"} found`
-                              : "No anomalies detected"}
-                          </span>
-                        </span>
-                        <ChevronRight size={13} className={`shrink-0 ${isSelected ? "text-[#8BE9FD]" : "text-[#7D8590]/40"}`} />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
-
-          {selectedTarget && (
-            <section className="border border-[#8BE9FD]/40 bg-[var(--color-ocean-card)]">
-              <div className="border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
-                <h3 className="font-mono text-[11px] font-bold text-[#8BE9FD]">INSPECT: {selectedTarget.id}</h3>
-                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#7D8590]">
-                  {selectedTarget.label} · {Math.round(selectedTarget.confidence * 100)}% confidence
-                </p>
-              </div>
-              <div className="p-4 space-y-3 max-h-[300px] overflow-y-auto">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleConfirm(selectedTarget.id)}
-                    className={`${verifyPulseId === selectedTarget.id ? "verify-pulse" : ""} flex flex-1 items-center justify-center gap-1.5 border py-2 font-mono text-[10px] font-bold uppercase tracking-wider transition ${
-                      selectedTarget.detectionStatus === "confirmed"
-                        ? "border-[#8BE9FD]/60 bg-[#8BE9FD]/10 text-[#8BE9FD]"
-                        : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[#7D8590] hover:bg-[var(--color-ocean-card)]"
-                    }`}
-                  >
-                    <Check size={12} /> Confirm
-                  </button>
-                  <button
-                    onClick={() => onStatusChange(selectedTarget.id, "false_positive")}
-                    className={`flex flex-1 items-center justify-center gap-1.5 border py-2 font-mono text-[10px] font-bold uppercase tracking-wider transition ${
-                      selectedTarget.detectionStatus === "false_positive"
-                        ? "border-[#FF5555]/60 bg-[#FF5555]/10 text-[#FF5555]"
-                        : "border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] text-[#7D8590] hover:bg-[var(--color-ocean-card)]"
-                    }`}
-                  >
-                    <X size={12} /> False Positive
-                  </button>
-                </div>
-
-                <div>
-                  <label className="mb-1 flex items-center gap-1.5 font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-[#7D8590]">
-                    <StickyNote size={10} /> Analyst Notes
-                  </label>
-                  <NoteEditor
-                    key={selectedTarget.id}
-                    initial={selectedTarget.note ?? ""}
-                    onCommit={(value) => onNoteChange(selectedTarget.id, value)}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                  <div className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-2.5 py-1.5">
-                    <span className="text-[#7D8590]">Depth:</span>{" "}
-                    <span className="text-[#E6EDF3]">{selectedTarget.depthM}m</span>
-                  </div>
-                  <div className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-2.5 py-1.5">
-                    <span className="text-[#7D8590]">Risk:</span>{" "}
-                    <span style={{ color: SEVERITY_META[selectedTarget.severity].stroke }}>{SEVERITY_META[selectedTarget.severity].label}</span>
-                  </div>
-                  <div className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-2.5 py-1.5">
-                    <span className="text-[#7D8590]">Size:</span>{" "}
-                    <span className="text-[#E6EDF3]">{selectedTarget.dims.length} × {selectedTarget.dims.width}m</span>
-                  </div>
-                  <div className="border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-2.5 py-1.5">
-                    <span className="text-[#7D8590]">Lat:</span>{" "}
-                    <span className="text-[#E6EDF3]">{selectedTarget.lat.toFixed(4)}</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          <section className="flex-1 min-h-0 overflow-hidden border border-[var(--color-ocean-border)] bg-[var(--color-ocean-card)]">
-            <div className="flex items-center gap-2 border-b border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-4 py-2.5">
-              <h3 className="font-mono text-[11px] font-bold tracking-wide text-[#E6EDF3]">REGISTER OF FOUND OBJECTS</h3>
-              <p className="ml-auto font-mono text-[8px] uppercase tracking-widest text-[#7D8590]">
-                {gatedTargets.length} / {displayTargets.length} contact{gatedTargets.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-            <ul className="divide-y divide-[var(--color-ocean-border)] overflow-y-auto" style={{ maxHeight: "calc(100vh - 560px)", minHeight: "80px" }}>
-              {gatedTargets.length === 0 && (
-                <li className="px-4 py-6 text-center font-mono text-[11px] text-[#7D8590]">
-                  {displayTargets.length === 0
-                    ? "Select an image to view detections."
-                    : confGate > 0
-                      ? `All contacts masked by the ${confGate}% confidence gate.`
-                      : "No anomalies in this image."}
-                </li>
-              )}
-              {gatedTargets.map((t) => {
-                const isSel = t.id === selectedId;
-                const pos = swathPosition(t);
-                return (
-                  <li key={t.id}>
-                    <button
-                      onClick={() => {
-                        onSelect(isSel ? null : t.id);
-                        setFocusId(isSel ? null : t.id);
-                      }}
-                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                        isSel ? "bg-[var(--color-ocean-surface)]" : "hover:bg-[var(--color-ocean-surface)]/50"
-                      }`}
-                    >
-                      <SwathCone position={pos} color={coneColorForSeverity(t.severity)} />
-                      <span className="min-w-0 flex-1">
-                        <span
-                          className={`block truncate font-mono text-xs ${isSel ? "font-bold text-[#8BE9FD]" : "text-[#E6EDF3]"}`}
-                        >
-                          {t.label}
-                        </span>
-                        <span className="block font-mono text-[9px] tracking-wide text-[#7D8590]">
-                          {t.id} · {pos.toUpperCase()} OFFSET · {Math.round(t.confidence * 100)}%
-                          {t.detectionStatus === "confirmed" && <span className="ml-1 text-[#8BE9FD]">✓ confirmed</span>}
-                          {t.detectionStatus === "false_positive" && <span className="ml-1 text-[#FF5555]">✗ false +</span>}
-                        </span>
-                      </span>
-                      <ChevronRight size={13} className={`shrink-0 ${isSel ? "text-[#8BE9FD]" : "text-[#7D8590]/40"}`} />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-
-          <TelemetryCard target={selectedTarget ?? null} />
+        <div className="flex items-center gap-3 min-w-[240px]">
+          <span style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink-soft)" }}>
+            Confidence
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={99}
+            value={threshold}
+            onChange={(e) => setThreshold(Number(e.target.value))}
+            className="flex-1"
+            style={{ ["--fill" as string]: `${threshold}%` }}
+          />
+          <span style={{ fontFamily: "var(--f-mono)", fontSize: "12px", fontWeight: 600, color: "var(--ink)" }}>
+            ≥ {threshold}%
+          </span>
+          <span style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink-soft)" }}>
+            {shown.length} / {targets.length} shown
+          </span>
         </div>
       </div>
+
+        {/* Dual-channel sonar stage with HTML overlay boxes */}
+        <div
+          className="relative overflow-hidden"
+          style={{ background: "var(--surface-2)", border: "1px solid var(--ink)" }}
+        >
+          {/* Channel labels */}
+          <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-between px-5">
+            <span className="uppercase" style={{ fontFamily: "var(--f-mono)", fontSize: "11px", letterSpacing: "0.14em", color: "var(--ink-soft)" }}>
+              Port Channel
+            </span>
+            <span className="uppercase" style={{ fontFamily: "var(--f-mono)", fontSize: "11px", letterSpacing: "0.14em", color: "var(--ink-soft)" }}>
+              Stbd Channel
+            </span>
+          </div>
+
+        {/* Stage is sized to the real image's native aspect (no cropping), so the
+            percentage-positioned boxes stay aligned and no objects are cut off.
+            Portrait 320x480 sonar frames are vertical, so we cap the WIDTH (ratio-aware)
+            to keep the stage height bounded instead of cropping the sides. */}
+        <div
+          className="relative w-full"
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            if (rect.width > 0) setCursorX(((e.clientX - rect.left) / rect.width) * 100);
+          }}
+          onMouseLeave={() => setCursorX(null)}
+          style={
+            showRealImage && imgSize
+              ? {
+                  width: "100%",
+                  minWidth: "380px",
+                  maxWidth: `${Math.round(820 * (imgSize.w / imgSize.h))}px`,
+                  margin: "0 auto",
+                  aspectRatio: `${imgSize.w} / ${imgSize.h}`,
+                  height: "auto",
+                }
+              : { height: "560px" }
+          }
+        >
+          {showRealImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={sourceImage}
+              alt="Original sonar frame"
+              onLoad={(e) => {
+                const el = e.currentTarget;
+                if (el.naturalWidth > 0) setImgSize({ w: el.naturalWidth, h: el.naturalHeight });
+              }}
+              className="absolute inset-0 h-full w-full"
+              style={{ objectFit: "cover" }}
+            />
+          ) : (
+            <SonarCanvas mode={mode === "original" ? "raw" : mode} />
+          )}
+
+          {/* Detection overlays — HTML boxes, always on top and clearly visible */}
+          <div className="pointer-events-none absolute inset-0 z-20">
+            {targets.map((t) => {
+              const dimmed = shown.indexOf(t) === -1;
+              const stroke =
+                t.priority === "P1" ? "#FF5A1F"
+                : t.priority === "P2" ? "#3FA9FF"
+                : "#18C8A8";
+              const fill =
+                t.priority === "P1" ? "rgba(255,90,31,0.10)"
+                : t.priority === "P2" ? "rgba(63,169,255,0.08)"
+                : "rgba(24,200,168,0.08)";
+              return (
+                <div
+                  key={`box-${t.id}`}
+                  className="absolute cursor-pointer"
+                  style={{
+                    left: `${t.box.x}%`,
+                    top: `${t.box.y}%`,
+                    width: `${t.box.w}%`,
+                    height: `${t.box.h}%`,
+                    opacity: dimmed ? 0.25 : 1,
+                  }}
+                >
+                  {/* attention glow behind the box */}
+                  {showAttention && (
+                    <div
+                      className="absolute"
+                      style={{
+                        inset: "-45%",
+                        background: `radial-gradient(circle, ${stroke}F0 0%, ${stroke}44 45%, transparent 74%)`,
+                        filter: "saturate(1.3)",
+                      }}
+                    />
+                  )}
+
+                  {/* region fill */}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundColor: fill,
+                    }}
+                  />
+                  {/* bold, high-contrast rectangle outline: solid colour border with a
+                      white halo and a hard dark outer ring, so the box reads as a clear
+                      rectangle on both bright sand and dark water-column. */}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      border: `3px solid ${stroke}`,
+                      borderStyle: "solid",
+                      boxShadow:
+                        "0 0 0 1.5px #FFFFFF, 0 0 0 4px rgba(0,0,0,0.9), 0 0 14px rgba(0,0,0,0.55)",
+                    }}
+                  />
+                  {/* white inner key-line for crispness against dark content */}
+                  <div
+                    className="absolute"
+                    style={{ inset: "5px", border: "1px solid rgba(255,255,255,0.7)" }}
+                  />
+
+                  {/* label chip (top-left), like the original version */}
+                  <div
+                    className="absolute whitespace-nowrap font-mono font-bold"
+                    style={{
+                      top: "-17px",
+                      left: "-2px",
+                      fontSize: "12px",
+                      letterSpacing: "0.02em",
+                      padding: "1px 6px",
+                      color: stroke,
+                      backgroundColor: "rgba(12,18,28,0.92)",
+                      border: `1px solid ${stroke}55`,
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                    }}
+                  >
+                    {t.id} · {Math.round(t.confidence * 100)}%
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Cursor line — follows the mouse across the frame, drives the graph marker */}
+            {cursorX !== null && (
+              <div
+                className="absolute z-30"
+                style={{
+                  left: `${cursorX}%`,
+                  top: 0,
+                  bottom: 0,
+                  width: "1px",
+                  background: "var(--signal)",
+                  opacity: 0.9,
+                }}
+              />
+            )}
+
+            {/* Leader lines + right-margin labels */}
+            {targets.map((t) => {
+              const dimmed = shown.indexOf(t) === -1;
+              const cy = t.box.y + t.box.h / 2;
+              const rightEdge = t.box.x + t.box.w;
+              const badge = priorityBadge(t.priority);
+              return (
+                <div key={`label-${t.id}`} className="absolute" style={{ top: `${cy}%`, left: 0, right: 0, height: 0, opacity: dimmed ? 0.18 : 1 }}>
+                  <div
+                    className="absolute"
+                    style={{
+                      left: `${rightEdge}%`,
+                      right: 0,
+                      top: 0,
+                      height: "1px",
+                      background: "var(--ink-soft)",
+                      opacity: 0.5,
+                    }}
+                  />
+                  <div
+                    className="absolute"
+                    style={{
+                      right: "8px",
+                      top: 0,
+                      transform: "translateY(-45%)",
+                      textAlign: "right",
+                      background: "rgba(255,255,255,0.94)",
+                      border: "1px solid var(--line-strong)",
+                      boxShadow: "0 1px 6px rgba(0,0,0,0.35)",
+                      padding: "5px 9px",
+                    }}
+                  >
+                    <div style={{ fontFamily: "var(--f-mono)", fontSize: "13px", fontWeight: 700, color: "var(--ink)" }}>
+                      {t.id} · {t.class}
+                    </div>
+                    <div style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
+                      {Math.round(t.confidence * 100)}% Conf · {t.lat.toFixed(4)}, {t.lon.toFixed(4)}
+                    </div>
+                    <div className="inline-block" style={{ padding: "2px 9px", marginTop: "3px", fontFamily: "var(--f-mono)", fontSize: "11px", fontWeight: 700, ...badge }}>
+                      {t.priority}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex justify-between px-4 py-2" style={{ borderTop: "1px solid var(--line)" }}>
+          <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
+            ARIS3K-9 · SIDE-SCAN WATERFALL · WGS-84
+          </span>
+          <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
+            {mode === "original" ? "ORIGINAL IMAGE" : mode === "denoised" ? "DENOISED" : "RAW"}
+          </span>
+        </div>
+      </div>
+
+      {/* Acoustic intensity profile — simple line graph, cursor-linked to the frame */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--ink)" }}>
+        <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: "1px solid var(--line)" }}>
+          <span className="uppercase" style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.12em", color: "var(--ink-soft)" }}>
+            Acoustic Intensity (dB)
+          </span>
+          <span style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink-soft)" }}>
+            {targets.length} contact{targets.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        <AcousticLineGraph wave={wave} spikes={spikes} cursorX={cursorX} />
+      </div>
+
+      {/* Detection report table */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--ink)" }}>
+        <div className="flex items-center justify-between px-4 py-3"
+          style={{ borderBottom: "1px solid var(--ink)" }}>
+          <h3 style={{ fontFamily: "var(--f-display)", fontWeight: 700, fontSize: "15px", color: "var(--ink)" }}>
+            Detection Report
+          </h3>
+          <div className="flex" style={{ gap: "10px" }}>
+            <button
+              onClick={() => downloadText("oceanscan_detections.csv", toCsv(shown), "text/csv")}
+              style={{ border: "1px solid var(--line-strong)", color: "var(--ink)", padding: "8px 15px", fontFamily: "var(--f-mono)", fontSize: "12px", cursor: "pointer" }}
+            >
+              Export CSV
+            </button>
+            <button
+              onClick={() => downloadText("oceanscan_detections.json", JSON.stringify(toGeoJSON(shown), null, 2), "application/json")}
+              style={{ border: "1px solid var(--line-strong)", color: "var(--ink)", padding: "8px 15px", fontFamily: "var(--f-mono)", fontSize: "12px", cursor: "pointer" }}
+            >
+              Export JSON
+            </button>
+          </div>
+        </div>
+
+        <table className="w-full" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--line)" }}>
+              {["ID", "Class", "Conf.", "Priority", "Lat", "Lon"].map((h) => (
+                <th key={h} className="text-left uppercase" style={{ padding: "10px 16px", fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.1em", color: "var(--ink-soft)" }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((t) => {
+              const badge = priorityBadge(t.priority);
+              const dim = Math.round(t.confidence * 100) < threshold;
+              return (
+                <tr key={t.id} style={{ borderBottom: "1px solid var(--line)", opacity: dim ? 0.32 : 1 }}>
+                  <td style={{ padding: "11px 16px", fontFamily: "var(--f-mono)", fontSize: "12px", fontWeight: 600, color: "var(--ink)" }}>
+                    {t.id}
+                  </td>
+                  <td style={{ padding: "11px 16px", fontFamily: "var(--f-mono)", fontSize: "12px", color: "var(--ink)" }}>
+                    {t.class}
+                  </td>
+                  <td style={{ padding: "11px 16px", fontFamily: "var(--f-mono)", fontSize: "12px", color: "var(--ink)" }}>
+                    {Math.round(t.confidence * 100)}%
+                  </td>
+                  <td style={{ padding: "11px 16px" }}>
+                    <span style={{ padding: "2px 9px", fontFamily: "var(--f-mono)", fontSize: "11px", fontWeight: 700, ...badge }}>
+                      {t.priority}
+                    </span>
+                  </td>
+                  <td style={{ padding: "11px 16px", fontFamily: "var(--f-mono)", fontSize: "12px", color: "var(--ink)" }}>
+                    {t.lat.toFixed(4)}
+                  </td>
+                  <td style={{ padding: "11px 16px", fontFamily: "var(--f-mono)", fontSize: "12px", color: "var(--ink)" }}>
+                    {t.lon.toFixed(4)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {shown.length === 0 && (
+          <p className="px-4 py-8 text-center" style={{ fontFamily: "var(--f-mono)", fontSize: "12px", color: "var(--ink-soft)" }}>
+            No detections above the {threshold}% threshold.
+          </p>
+        )}
+      </div>
     </div>
-  );
-}
-
-function LedgerRow({
-  label,
-  value,
-  strong = false,
-  valueClass = "text-[#E6EDF3]",
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-  valueClass?: string;
-}) {
-  return (
-    <div className="flex items-baseline gap-2 py-[5px] font-mono text-[10px]">
-      <span className={`shrink-0 uppercase tracking-wide ${strong ? "font-bold text-[#E6EDF3]" : "text-[#7D8590]"}`}>{label}</span>
-      <span className="mx-1 flex-1 border-b border-dotted border-[#B9C6D2]" />
-      <span className={`shrink-0 tabular-nums ${strong ? "font-bold" : "font-semibold"} ${valueClass}`}>{value}</span>
-    </div>
-  );
-}
-
-function NoteEditor({
-  initial,
-  onCommit,
-}: {
-  initial: string;
-  onCommit: (value: string) => void;
-}) {
-  const [note, setNote] = useState(initial);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  return (
-    <textarea
-      value={note}
-      onChange={(e) => {
-        const value = e.target.value;
-        setNote(value);
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        timeoutRef.current = setTimeout(() => onCommit(value), 300);
-      }}
-      placeholder="Add notes about this detection..."
-      rows={3}
-      className="w-full resize-y border border-[var(--color-ocean-border)] bg-[var(--color-ocean-surface)] px-3 py-2 font-mono text-[11px] text-[#E6EDF3] placeholder:text-[#7D8590]/40 focus:border-[#8BE9FD] focus:outline-none"
-    />
   );
 }

@@ -1,172 +1,73 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-ibm-plex-sans);
-  --font-display: var(--font-space-grotesk);
-  --font-mono: var(--font-jetbrains-mono);
+  --font-sans: var(--font-archivo), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-archivo), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", monospace;
 
-  /* ===== Restrained Marine Console palette ===== */
-  /* Main app surface — deep slate graphite / console black */
-  --color-ocean-canvas: #0D1117;
-  /* Card / panel surface — muted technical slate */
-  --color-ocean-card: #161B22;
-  --color-ocean-slate: #161B22;
-  /* Panel header strip / inset surface */
-  --color-ocean-surface: #1C232D;
-  /* Sonar cavity — ultra-low acoustic bed */
-  --color-ocean-console: #090D12;
-  /* Hairline structural borders */
-  --color-ocean-border: rgba(255, 255, 255, 0.08);
-  /* Active accent / waypoints — Hydrographic Cyan */
-  --color-ocean-primary: #8BE9FD;
-  --color-ocean-royal: #8BE9FD;
-  --color-ocean-sky: #8BE9FD;
-  --color-ocean-electric: #8BE9FD;
-  /* Signal axis — Confidence / Severity ONLY */
-  --color-ocean-high: #FF5555;      /* High / Critical — Coral Signal */
-  --color-ocean-medium: #FFB86C;    /* Medium / Review — Tungsten Amber */
-  --color-ocean-low: #50FA7B;       /* Low / Cleared — Acoustic Green */
-  /* Backward-compatible aliases mapped to the restrained dark palette */
-  --color-ocean-red: #FF5555;
-  --color-ocean-amber: #FFB86C;
-  --color-ocean-green: #50FA7B;
-  --color-ocean-emerald: #50FA7B;
-  --color-ocean-blue: #8BE9FD;
-  /* Typography */
-  --color-ocean-text: #E6EDF3;      /* primary off-white */
-  --color-ocean-muted: #7D8590;     /* steel mono gray */
+  /* ===== Mono-Signal design tokens ===== */
+  --bg: #F4F4F1;
+  --surface: #FFFFFF;
+  --surface-2: #FAFAF8;
+  --ink: #141414;
+  --ink-soft: #6B6B67;
+  --line: #E1E1DC;
+  --line-strong: #B9B9B2;
+  --signal: #FF5A1F;
+  --signal-dim: rgba(255, 90, 31, 0.14);
+
+  /* Mapped Tailwind color tokens (so var(--color-*) utilities resolve) */
+  --color-app-bg: #F4F4F1;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #FAFAF8;
+  --color-ink: #141414;
+  --color-ink-soft: #6B6B67;
+  --color-line: #E1E1DC;
+  --color-line-strong: #B9B9B2;
+  --color-signal: #FF5A1F;
+  --color-signal-dim: rgba(255, 90, 31, 0.14);
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --bg: #F4F4F1;
+  --surface: #FFFFFF;
+  --surface-2: #FAFAF8;
+  --ink: #141414;
+  --ink-soft: #6B6B67;
+  --line: #E1E1DC;
+  --line-strong: #B9B9B2;
+  --signal: #FF5A1F;
+  --signal-dim: rgba(255, 90, 31, 0.14);
+  --f-display: var(--font-archivo), "Archivo", sans-serif;
+  --f-mono: var(--font-plex-mono), "IBM Plex Mono", monospace;
 }
 
+html,
 body {
-  background-color: var(--color-ocean-canvas);
-  background-image:
-    /* Faint technical grid on console black */
-    repeating-linear-gradient(
-      0deg,
-      rgba(139, 233, 253, 0.02) 0px,
-      rgba(139, 233, 253, 0.02) 1px,
-      transparent 1px,
-      transparent 56px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(139, 233, 253, 0.02) 0px,
-      rgba(139, 233, 253, 0.02) 1px,
-      transparent 1px,
-      transparent 56px
-    );
-  background-size: 56px 56px, 56px 56px;
-  color: var(--color-ocean-text);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
-}
-
-/* Continuous slow breathing glow ring for LIVE hardware pills */
-@keyframes breathe {
-  0%   { box-shadow: 0 0 0 0 rgba(139, 233, 253, 0.35); }
-  70%  { box-shadow: 0 0 0 7px rgba(139, 233, 253, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(139, 233, 253, 0); }
-}
-.breathe {
-  animation: breathe 2.6s ease-in-out infinite;
-}
-
-/* App content sits above the ambient chart-paper layer */
-#__next, .app-shell {
-  position: relative;
-  z-index: 1;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-mono);
+  -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: rgba(139, 233, 253, 0.3);
+  background: var(--signal-dim);
+  color: var(--ink);
 }
 
-/* Panel inner top hairline — crisp lit edge on dark cards */
-.panel {
-  border: 1px solid var(--color-ocean-border);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
-}
-
-/* Clean launch canvas — static 36px grid on console black */
-.launch-grid {
-  background-color: #0D1117;
-  background-image:
-    linear-gradient(rgba(139, 233, 253, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 233, 253, 0.035) 1px, transparent 1px);
-  background-size: 36px 36px;
-}
-
-/* Sonar viewport textures (dark console wells) */
-.sonar-grid {
-  background-image:
-    linear-gradient(rgba(139, 233, 253, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 233, 253, 0.04) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-
-.scanlines {
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(139, 233, 253, 0.03) 0px,
-    rgba(139, 233, 253, 0.03) 1px,
-    transparent 1px,
-    transparent 3px
-  );
-}
-
-@keyframes ring-pulse {
-  0% { transform: scale(1); opacity: 0.9; }
-  100% { transform: scale(2.6); opacity: 0; }
-}
-
-.pin-pulse {
-  animation: ring-pulse 1.8s ease-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-@keyframes sweep-glow {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
-
-.sweep-line {
-  animation: sweep-glow 2s ease-in-out infinite;
-}
-
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.fade-up {
-  animation: fade-up 0.3s ease-out both;
-}
-
-@keyframes count-pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-.count-pulse {
-  animation: count-pulse 0.4s ease-out;
-}
-
-/* Tactical range slider (Residual — most controls are now radial gain dials) */
+/* Zero radius + hairline borders enforced on instruments via components;
+   belt-and-braces defaults for native controls. */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   height: 3px;
   border-radius: 0;
+  accent-color: var(--signal);
   background: linear-gradient(
     90deg,
-    #8BE9FD var(--fill, 70%),
-    rgba(255, 255, 255, 0.14) var(--fill, 70%)
+    var(--signal) var(--fill, 30%),
+    var(--line-strong) var(--fill, 30%)
   );
   cursor: pointer;
 }
@@ -174,26 +75,26 @@ input[type="range"] {
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 0;
-  border: 1px solid #8BE9FD;
-  background: #161B22;
-  box-shadow: 0 0 0 2px rgba(139, 233, 253, 0.15);
+  border: 1px solid var(--ink);
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--signal-dim);
   transition: box-shadow 0.15s;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 0 4px rgba(139, 233, 253, 0.28);
+  box-shadow: 0 0 0 4px var(--signal-dim);
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 0;
-  border: 1px solid #8BE9FD;
-  background: #161B22;
-  box-shadow: 0 0 0 2px rgba(139, 233, 253, 0.15);
+  border: 1px solid var(--ink);
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--signal-dim);
 }
 
 input[type="range"]::-moz-range-track {
@@ -205,98 +106,54 @@ input[type="range"]::-moz-range-track {
   width: 6px;
   height: 6px;
 }
-
 *::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-2);
 }
-
 *::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--line-strong);
   border-radius: 0;
 }
-
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 233, 253, 0.4);
+  background: var(--signal);
 }
 
-/* Comparison slider */
-.comparison-slider {
-  cursor: ew-resize;
-  touch-action: none;
+/* ===== Motion ===== */
+
+/* Radar ping — expanding concentric rings for the Start hero */
+@keyframes ringpulse {
+  0%   { transform: scale(0.85); opacity: 0.7; }
+  70%  { transform: scale(1.9);  opacity: 0; }
+  100% { transform: scale(1.9);  opacity: 0; }
+}
+.ringpulse {
+  animation: ringpulse 5s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-/* Operator verification — cyan pulse flash on CONFIRM */
-@keyframes verify-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(139, 233, 253, 0.55); }
-  70% { box-shadow: 0 0 0 12px rgba(139, 233, 253, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(139, 233, 253, 0); }
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fade-up 0.3s ease-out both;
 }
 
-.verify-pulse {
-  animation: verify-pulse 0.6s ease-out;
+/* Stepper active underline sweep */
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.step-in {
+  animation: step-in 0.35s ease-out both;
 }
 
-/* Target slew-to-cue: spring zoom focus toward the selected box.
-   Both keyframes set `transform` (and `transform-origin` from .slew-focus is a
-   separate property), so the animation reaches scale(1.5) and holds it via
-   fill-mode both. Without a `to` frame the from-only keyframe would freeze the
-   transform at scale(0.9) — never actually zooming onto the target. */
-@keyframes slew-in {
-  from { transform: scale(0.9); opacity: 0.5; }
-  to   { transform: scale(1.5); opacity: 1; }
+/* Sonar idle sweep shimmer */
+@keyframes sweep-glow {
+  0% { opacity: 0.55; }
+  50% { opacity: 1; }
+  100% { opacity: 0.55; }
 }
-
-.slew-focus {
-  animation: slew-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  transform-origin: var(--slew-ox, 50%) var(--slew-oy, 50%);
-}
-
-/* Dim non-target area while slewing onto a target */
-.slew-dim {
-  transition: opacity 0.35s ease;
-}
-
-/* Grain / film matte over viewports */
-.film-grain {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.02) 0.6px, transparent 0.6px);
-  background-size: 2.5px 2.5px;
-}
-
-/* HUD overlay */
-.hud-text {
-  text-shadow: 0 0 6px rgba(139, 233, 253, 0.45);
-}
-
-/* Gradient border glow */
-.glow-border {
-  box-shadow: 0 0 0 1px rgba(139, 233, 253, 0.16), 0 0 18px rgba(139, 233, 253, 0.07);
-}
-
-/* Heatmap overlay */
-.heatmap-overlay {
-  background: radial-gradient(
-    ellipse at center,
-    rgba(255, 85, 85, 0.35) 0%,
-    rgba(255, 184, 108, 0.22) 35%,
-    rgba(139, 233, 253, 0.12) 65%,
-    transparent 100%
-  );
-  mix-blend-mode: multiply;
-}
-
-/* Blueprint corner registration marks for worksheet sheets */
-.chart-marks::before,
-.chart-marks::after {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  pointer-events: none;
-}
-.chart-marks::before {
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-}
-.chart-marks::after {
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+.sweep-line {
+  animation: sweep-glow 2s ease-in-out infinite;
 }
