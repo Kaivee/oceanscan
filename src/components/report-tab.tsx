@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { TRAJECTORY, printBrief, type Priority, type SampleSurvey, type SonarTarget } from "@/lib/targets";
+import { useI18n } from "@/lib/i18n";
 
 const W = 340;
 const H = 200;
@@ -86,6 +87,7 @@ interface BriefViewProps {
 }
 
 export default function BriefView({ survey, targets }: BriefViewProps) {
+  const { lang, t, classLabel, fieldAction, priorityLabel } = useI18n();
   const ordered = useMemo(() => {
     const rank: Record<Priority, number> = { P1: 0, P2: 1, P3: 2 };
     return [...targets].sort((a, b) => rank[a.priority] - rank[b.priority] || b.confidence - a.confidence);
@@ -98,12 +100,18 @@ export default function BriefView({ survey, targets }: BriefViewProps) {
     const lines = ordered
       .map(
         (t, i) =>
-          `${String(i + 1).padStart(2, "0")} | ${t.id} · ${t.class} | ${t.priority} | ${Math.round(t.confidence * 100)}% | ${t.lat.toFixed(4)}, ${t.lon.toFixed(4)} | ${t.fieldAction}`,
+          `${String(i + 1).padStart(2, "0")} | ${t.id} · ${classLabel(t.class)} | ${priorityLabel(t.priority)} | ${Math.round(t.confidence * 100)}% | ${t.lat.toFixed(4)}, ${t.lon.toFixed(4)} | ${fieldAction(t.class, t.priority)}`,
       )
       .join("\n");
-    const subject = encodeURIComponent(`[OceanScan] Field Dispatch — Survey ${survey.id}`);
+    const subject = encodeURIComponent(t("emailSubject", { id: survey.id }));
     const body = encodeURIComponent(
-      `SURVEY ${survey.id} · ${survey.file} · GENERATED ${survey.generated}\n${survey.area}\n\nRECOVERY ORDER\n${lines}\n\nDispatch prepared by OceanScan edge inference.`,
+      t("emailBody", {
+        id: survey.id,
+        file: survey.file,
+        time: survey.generated,
+        area: survey.area,
+        lines,
+      }),
     );
     setTimeout(() => {
       setDispatchState("sent");
@@ -119,10 +127,10 @@ export default function BriefView({ survey, targets }: BriefViewProps) {
         <div className="flex items-start justify-between" style={{ borderBottom: "1px solid var(--ink)", paddingBottom: "18px" }}>
           <div>
             <h1 style={{ fontFamily: "var(--f-display)", fontWeight: 800, fontSize: "28px", letterSpacing: "-0.01em", color: "var(--ink)" }}>
-              Cleanup Mission Brief
+              {t("cleanupMissionBrief")}
             </h1>
             <p style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink-soft)", marginTop: "8px" }}>
-              SURVEY {survey.id} · {survey.file} · GENERATED {survey.generated}
+              {t("surveyMeta", { id: survey.id, file: survey.file, time: survey.generated })}
             </p>
           </div>
           <div style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)", textAlign: "right" }}>
@@ -135,7 +143,7 @@ export default function BriefView({ survey, targets }: BriefViewProps) {
         {/* Mini trajectory map */}
         <div className="mt-6" style={{ border: "1px solid var(--line)" }}>
           <div className="px-3 py-2" style={{ borderBottom: "1px solid var(--line)", fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.1em", color: "var(--ink-soft)" }}>
-            SURVEY TRAJECTORY
+            {t("surveyTrajectory")}
           </div>
           <MiniMap targets={targets} />
         </div>
@@ -143,36 +151,36 @@ export default function BriefView({ survey, targets }: BriefViewProps) {
         {/* Numbered action items */}
         <div className="mt-8" style={{ border: "1px solid var(--ink)" }}>
           <div className="px-4 py-2.5" style={{ borderBottom: "1px solid var(--ink)", fontFamily: "var(--f-display)", fontWeight: 700, fontSize: "14px", color: "var(--ink)" }}>
-            Action Items
+            {t("actionItems")}
           </div>
-          {ordered.map((t, i) => {
-            const badge = priorityBadge(t.priority);
+          {ordered.map((tar, i) => {
+            const badge = priorityBadge(tar.priority);
             const num = String(i + 1).padStart(2, "0");
             return (
-              <div key={t.id} style={{ borderBottom: i === ordered.length - 1 ? "none" : "1px solid var(--line)", padding: "18px" }}>
+              <div key={tar.id} style={{ borderBottom: i === ordered.length - 1 ? "none" : "1px solid var(--line)", padding: "18px" }}>
                 <div className="flex items-start gap-4">
                   <span style={{ fontFamily: "var(--f-display)", fontWeight: 700, fontSize: "20px", color: "var(--signal)", lineHeight: 1 }}>
                     {num}
                   </span>
                   <div className="flex gap-4">
-                    <BriefThumb t={t} />
+                    <BriefThumb t={tar} />
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
                         <span style={{ fontFamily: "var(--f-display)", fontWeight: 600, fontSize: "15px", color: "var(--ink)" }}>
-                          {t.class}
+                          {classLabel(tar.class)}
                         </span>
                         <span style={{ padding: "2px 9px", fontFamily: "var(--f-mono)", fontSize: "11px", fontWeight: 700, ...badge }}>
-                          {t.priority}
+                          {priorityLabel(tar.priority)}
                         </span>
                       </div>
                       <div className="mt-2" style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink)" }}>
-                        {Math.round(t.confidence * 100)}% confidence · {t.lat.toFixed(4)}, {t.lon.toFixed(4)} · {t.dims.length.toFixed(1)} × {t.dims.width.toFixed(1)} m
+                        {t("targetDetail", { conf: Math.round(tar.confidence * 100), lat: tar.lat.toFixed(4), lon: tar.lon.toFixed(4), w: tar.dims.width.toFixed(1), h: tar.dims.length.toFixed(1) })}
                       </div>
                     </div>
                   </div>
                 </div>
                 <p className="mt-3 pl-16" style={{ borderLeft: "2px solid var(--signal)", paddingLeft: "12px", fontFamily: "var(--f-mono)", fontSize: "12px", color: "var(--ink)" }}>
-                  {t.fieldAction}
+                  {fieldAction(tar.class, tar.priority)}
                 </p>
               </div>
             );
@@ -182,11 +190,11 @@ export default function BriefView({ survey, targets }: BriefViewProps) {
         {/* Action controls */}
         <div className="mt-8 flex" style={{ gap: "12px" }}>
           <button
-            onClick={() => printBrief(ordered, survey)}
+            onClick={() => printBrief(ordered, survey, lang)}
             className="flex-1"
             style={{ background: "var(--signal)", border: "1px solid var(--signal)", color: "#FFFFFF", fontWeight: 600, padding: "12px 20px", fontFamily: "var(--f-mono)", fontSize: "13px", cursor: "pointer" }}
           >
-            Export PDF Brief
+            {t("exportPdfBrief")}
           </button>
           <button
             onClick={dispatchToFieldTeam}
@@ -203,10 +211,10 @@ export default function BriefView({ survey, targets }: BriefViewProps) {
             }}
           >
             {dispatchState === "sending"
-              ? "Dispatching…"
+              ? t("dispatching")
               : dispatchState === "sent"
-                ? "Dispatched to field team ✓"
-                : "Send to Field Team"}
+                ? t("dispatched")
+                : t("sendToFieldTeam")}
           </button>
         </div>
       </div>

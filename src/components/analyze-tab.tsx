@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import SonarCanvas from "@/components/sonar-preview";
 import { toCsv, toGeoJSON, downloadText, type SonarTarget, type ViewMode, type Priority } from "@/lib/targets";
+import { useI18n } from "@/lib/i18n";
 
 function priorityBadge(p: Priority) {
   if (p === "P1")
@@ -238,6 +239,7 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
   const [threshold, setThreshold] = useState(0);
   const [cursorX, setCursorX] = useState<number | null>(null); // cursor % across the stage
   const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
+  const { t, classLabel } = useI18n();
 
   const shown = useMemo(
     () => targets.filter((t) => Math.round(t.confidence * 100) >= threshold),
@@ -265,10 +267,10 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-center">
         <p style={{ fontFamily: "var(--f-display)", fontSize: "22px", fontWeight: 700, color: "var(--ink)" }}>
-          No survey frame loaded
+          {t("noSurveyFrame")}
         </p>
         <p className="mt-2 max-w-md" style={{ color: "var(--ink-soft)", fontSize: "14px" }}>
-          Load a sonar log or a sample survey to run detection and inspect the frame.
+          {t("noSurveyBody")}
         </p>
         <button
           onClick={onGoMap}
@@ -283,7 +285,7 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
             cursor: "pointer",
           }}
         >
-          Load a survey
+          {t("loadSurvey")}
         </button>
       </div>
     );
@@ -312,7 +314,7 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
                 cursor: "pointer",
               }}
             >
-              {m === "original" ? "Original" : m === "raw" ? "Raw" : "Denoised"}
+              {m === "original" ? t("viewOriginal") : m === "raw" ? t("viewSimulated") : t("viewDenoised")}
             </button>
           ))}
           <button
@@ -336,7 +338,7 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
 
         <div className="flex items-center gap-3 min-w-[240px]">
           <span style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink-soft)" }}>
-            Confidence
+            {t("confidence")}
           </span>
           <input
             type="range"
@@ -351,7 +353,7 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
             ≥ {threshold}%
           </span>
           <span style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink-soft)" }}>
-            {shown.length} / {targets.length} shown
+            {t("shownCount", { shown: shown.length, total: targets.length })}
           </span>
         </div>
       </div>
@@ -364,10 +366,10 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
           {/* Channel labels */}
           <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-between px-5">
             <span className="uppercase" style={{ fontFamily: "var(--f-mono)", fontSize: "11px", letterSpacing: "0.14em", color: "var(--ink-soft)" }}>
-              Port Channel
+              {t("portChannel")}
             </span>
             <span className="uppercase" style={{ fontFamily: "var(--f-mono)", fontSize: "11px", letterSpacing: "0.14em", color: "var(--ink-soft)" }}>
-              Stbd Channel
+              {t("stbdChannel")}
             </span>
           </div>
 
@@ -399,7 +401,7 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={sourceImage}
-              alt="Original sonar frame"
+              alt={t("frameOriginal")}
               onLoad={(e) => {
                 const el = e.currentTarget;
                 if (el.naturalWidth > 0) setImgSize({ w: el.naturalWidth, h: el.naturalHeight });
@@ -541,7 +543,7 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
                     }}
                   >
                     <div style={{ fontFamily: "var(--f-mono)", fontSize: "13px", fontWeight: 700, color: "var(--ink)" }}>
-                      {t.id} · {t.class}
+                      {t.id} · {classLabel(t.class)}
                     </div>
                     <div style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
                       {Math.round(t.confidence * 100)}% Conf · {t.lat.toFixed(4)}, {t.lon.toFixed(4)}
@@ -558,10 +560,14 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
 
         <div className="flex justify-between px-4 py-2" style={{ borderTop: "1px solid var(--line)" }}>
           <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
-            ARIS3K-9 · SIDE-SCAN WATERFALL · WGS-84
+            {t("frameCaption")}
           </span>
           <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
-            {mode === "original" ? "ORIGINAL IMAGE" : mode === "denoised" ? "DENOISED" : "RAW"}
+            {mode === "original"
+              ? t("statusOriginal")
+              : mode === "denoised"
+                ? t("statusDenoised")
+                : t("statusSimulated")}
           </span>
         </div>
       </div>
@@ -570,10 +576,10 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
       <div style={{ background: "var(--surface)", border: "1px solid var(--ink)" }}>
         <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: "1px solid var(--line)" }}>
           <span className="uppercase" style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.12em", color: "var(--ink-soft)" }}>
-            Acoustic Intensity (dB)
+            {t("acousticIntensity")}
           </span>
           <span style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink-soft)" }}>
-            {targets.length} contact{targets.length !== 1 ? "s" : ""}
+            {targets.length === 1 ? t("contactOne", { n: targets.length }) : t("contactMany", { n: targets.length })}
           </span>
         </div>
 
@@ -585,20 +591,20 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
         <div className="flex items-center justify-between px-4 py-3"
           style={{ borderBottom: "1px solid var(--ink)" }}>
           <h3 style={{ fontFamily: "var(--f-display)", fontWeight: 700, fontSize: "15px", color: "var(--ink)" }}>
-            Detection Report
+            {t("detectionReport")}
           </h3>
           <div className="flex" style={{ gap: "10px" }}>
             <button
               onClick={() => downloadText("oceanscan_detections.csv", toCsv(shown), "text/csv")}
               style={{ border: "1px solid var(--line-strong)", color: "var(--ink)", padding: "8px 15px", fontFamily: "var(--f-mono)", fontSize: "12px", cursor: "pointer" }}
             >
-              Export CSV
+              {t("exportCsv")}
             </button>
             <button
               onClick={() => downloadText("oceanscan_detections.json", JSON.stringify(toGeoJSON(shown), null, 2), "application/json")}
               style={{ border: "1px solid var(--line-strong)", color: "var(--ink)", padding: "8px 15px", fontFamily: "var(--f-mono)", fontSize: "12px", cursor: "pointer" }}
             >
-              Export JSON
+              {t("exportJson")}
             </button>
           </div>
         </div>
@@ -606,7 +612,7 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
         <table className="w-full" style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--line)" }}>
-              {["ID", "Class", "Conf.", "Priority", "Lat", "Lon"].map((h) => (
+              {[t("colId"), t("colClass"), t("colConf"), t("colPriority"), t("colLat"), t("colLon")].map((h) => (
                 <th key={h} className="text-left uppercase" style={{ padding: "10px 16px", fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.1em", color: "var(--ink-soft)" }}>
                   {h}
                 </th>
@@ -623,7 +629,7 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
                     {t.id}
                   </td>
                   <td style={{ padding: "11px 16px", fontFamily: "var(--f-mono)", fontSize: "12px", color: "var(--ink)" }}>
-                    {t.class}
+                    {classLabel(t.class)}
                   </td>
                   <td style={{ padding: "11px 16px", fontFamily: "var(--f-mono)", fontSize: "12px", color: "var(--ink)" }}>
                     {Math.round(t.confidence * 100)}%
@@ -646,7 +652,7 @@ export default function FrameView({ targets, onGoMap }: FrameViewProps) {
         </table>
         {shown.length === 0 && (
           <p className="px-4 py-8 text-center" style={{ fontFamily: "var(--f-mono)", fontSize: "12px", color: "var(--ink-soft)" }}>
-            No detections above the {threshold}% threshold.
+            {t("noDetections", { p: threshold })}
           </p>
         )}
       </div>

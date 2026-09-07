@@ -4,6 +4,8 @@ export type ViewMode = "raw" | "denoised" | "original" | "attention";
 
 export type TabKey = "start" | "frame" | "map" | "brief";
 
+import { ts, fieldAction, priorityLabel } from "./i18n/strings";
+
 export interface TargetDims {
   length: number;
   width: number;
@@ -245,8 +247,9 @@ export interface ApiResponse {
 }
 
 function riskToPriority(risk: string): Priority {
-  if (risk === "high") return "P1";
-  if (risk === "medium") return "P2";
+  const r = risk.toLowerCase();
+  if (r === "high") return "P1";
+  if (r === "medium") return "P2";
   return "P3";
 }
 
@@ -390,26 +393,31 @@ export function downloadText(filename: string, text: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-export function printBrief(targets: SonarTarget[], survey: SampleSurvey) {
+export function printBrief(
+  targets: SonarTarget[],
+  survey: SampleSurvey,
+  locale?: "en" | "hi",
+) {
+  const lang = locale === "hi" ? "hi" : "en";
   const items = targets
     .map(
       (t, i) => `
     <section style="border-top:1px solid #141414;margin-top:16px;padding-top:12px">
-      <h3 style="color:var(--signal);font-family:Archivo,monospace;font-size:20px;font-weight:700;margin:0 0 8px">${String(i + 1).padStart(2, "0")} · ${t.class}</h3>
+      <h3 style="color:var(--signal);font-family:Archivo,monospace;font-size:20px;font-weight:700;margin:0 0 8px">${String(i + 1).padStart(2, "0")} · ${ts(lang, "printHeading")}</h3>
       <table style="border-collapse:collapse;font-size:12px">
-        <tr><th style="text-align:left;padding:3px 12px 3px 0">Confidence</th><td style="font-weight:600">${(t.confidence * 100).toFixed(0)}%</td></tr>
-        <tr><th style="text-align:left;padding:3px 12px 3px 0">Coordinates</th><td style="font-weight:600">${t.lat.toFixed(4)}, ${t.lon.toFixed(4)}</td></tr>
-        <tr><th style="text-align:left;padding:3px 12px 3px 0">Dims (L×W)</th><td style="font-weight:600">${t.dims.length.toFixed(1)} × ${t.dims.width.toFixed(1)} m</td></tr>
-        <tr><th style="text-align:left;padding:3px 12px 3px 0">Priority</th><td style="font-weight:700;color:${t.priority === "P1" ? "#FF5A1F" : "#141414"}">${t.priority}</td></tr>
+        <tr><th style="text-align:left;padding:3px 12px 3px 0">${ts(lang, "printConf")}</th><td style="font-weight:600">${(t.confidence * 100).toFixed(0)}%</td></tr>
+        <tr><th style="text-align:left;padding:3px 12px 3px 0">${ts(lang, "printCoords")}</th><td style="font-weight:600">${t.lat.toFixed(4)}, ${t.lon.toFixed(4)}</td></tr>
+        <tr><th style="text-align:left;padding:3px 12px 3px 0">${ts(lang, "printDims")}</th><td style="font-weight:600">${t.dims.length.toFixed(1)} × ${t.dims.width.toFixed(1)} m</td></tr>
+        <tr><th style="text-align:left;padding:3px 12px 3px 0">${ts(lang, "printPriority")}</th><td style="font-weight:700;color:${t.priority === "P1" ? "#FF5A1F" : "#141414"}">${priorityLabel(lang, t.priority)}</td></tr>
       </table>
-      <p style="border-left:2px solid #FF5A1F;padding-left:12px;margin:10px 0 0;font-size:12px">${t.fieldAction}</p>
+      <p style="border-left:2px solid #FF5A1F;padding-left:12px;margin:10px 0 0;font-size:12px">${fieldAction(lang, t.class, t.priority)}</p>
     </section>`,
     )
     .join("");
 
   const html = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"/>
-<title>OceanScan Mission Brief</title>
+<html lang="${lang}"><head><meta charset="utf-8"/>
+<title>${ts(lang, "printTitle")}</title>
 <style>
  :root{--signal:#FF5A1F}
  *{box-sizing:border-box;margin:0;padding:0}
@@ -418,8 +426,8 @@ export function printBrief(targets: SonarTarget[], survey: SampleSurvey) {
  .meta{margin-top:8px;font-size:11px;color:#6B6B67}
 </style></head>
 <body>
-  <h1>Cleanup Mission Brief</h1>
-  <p class="meta">SURVEY ${survey.id} · ${survey.file} · GENERATED ${survey.generated}</p>
+  <h1>${ts(lang, "printHeading")}</h1>
+  <p class="meta">${ts(lang, "surveyMeta", { id: survey.id, file: survey.file, time: survey.generated })}</p>
   ${items}
 </body></html>`;
 

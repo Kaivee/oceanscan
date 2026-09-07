@@ -2,16 +2,17 @@
 
 import { useCallback, useRef, useState } from "react";
 import { SAMPLE_SURVEY } from "@/lib/targets";
+import { useI18n } from "@/lib/i18n";
 
 interface LaunchScreenProps {
   onFileChosen: (file: File) => void;
   onLoadSample: () => void;
 }
 
-const RECENT = [
-  { file: "LN-014 · ARIS3K-9.XTF", when: "TODAY 09:40", contacts: 3 },
-  { file: "LN-011 · Harbour-East.JSF", when: "TODAY 08:12", contacts: 1 },
-  { file: "LN-009 · Reef-North.XTF", when: "YESTERDAY 17:04", contacts: 2 },
+const RECENT: { file: string; when: "today" | "yesterday"; time: string; contacts: number }[] = [
+  { file: "LN-014 · ARIS3K-9.XTF", when: "today", time: "09:40", contacts: 3 },
+  { file: "LN-011 · Harbour-East.JSF", when: "today", time: "08:12", contacts: 1 },
+  { file: "LN-009 · Reef-North.XTF", when: "yesterday", time: "17:04", contacts: 2 },
 ];
 
 function RadarRings() {
@@ -59,6 +60,7 @@ function RadarRings() {
 export default function LaunchScreen({ onFileChosen, onLoadSample }: LaunchScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const { t } = useI18n();
 
   const handleFiles = useCallback(
     (file?: File | null) => {
@@ -85,17 +87,18 @@ export default function LaunchScreen({ onFileChosen, onLoadSample }: LaunchScree
             color: "var(--ink-soft)",
           }}
         >
-          Hydrographic Debris Survey
+          {t("heroKicker")}
         </p>
         <h1
           className="mt-5 max-w-2xl leading-[1.04] tracking-[-0.02em]"
           style={{ fontFamily: "var(--f-display)", fontSize: "44px", fontWeight: 800, color: "var(--ink)" }}
         >
-          Find the <span style={{ color: "var(--signal)" }}>ghost nets</span> before they find the reef.
+          {t("heroTitleStart")}
+          <span style={{ color: "var(--signal)" }}>{t("heroTitleHighlight")}</span>
+          {t("heroTitleEnd")}
         </h1>
         <p className="mt-5 max-w-lg leading-relaxed" style={{ color: "var(--ink-soft)", fontSize: "15px" }}>
-          Upload a side-scan sonar log. OceanScan separates man-made debris from seafloor clutter and
-          hands back a geotagged, priority-ordered cleanup report.
+          {t("heroBody")}
         </p>
       </div>
 
@@ -143,10 +146,10 @@ export default function LaunchScreen({ onFileChosen, onLoadSample }: LaunchScree
             <path d="M4 20h16" />
           </svg>
           <p className="mt-4" style={{ fontFamily: "var(--f-display)", fontWeight: 600, fontSize: "16px" }}>
-            Drop a sonar log, or click to browse
+            {t("dropOrBrowse")}
           </p>
           <p className="mt-1.5" style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink-soft)" }}>
-            .XTF · .JSF · .PNG — up to 500MB
+            {t("fileTypesHint")}
           </p>
         </div>
 
@@ -156,7 +159,7 @@ export default function LaunchScreen({ onFileChosen, onLoadSample }: LaunchScree
             className="bg-transparent underline underline-offset-4"
             style={{ fontFamily: "var(--f-mono)", fontSize: "12px", color: "var(--ink)", border: "none", cursor: "pointer" }}
           >
-            No file handy? Load a sample survey →
+            {t("loadSample")}
           </button>
         </div>
       </div>
@@ -164,7 +167,7 @@ export default function LaunchScreen({ onFileChosen, onLoadSample }: LaunchScree
       {/* Recent surveys ledger */}
       <div className="relative z-10 mt-14 w-full max-w-[460px]">
         <p className="uppercase" style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.14em", color: "var(--ink-soft)" }}>
-          Recent Surveys — {SAMPLE_SURVEY.area}
+          {t("recentSurveys", { area: SAMPLE_SURVEY.area })}
         </p>
         <div className="mt-3 border-t" style={{ borderColor: "var(--line)" }}>
           {RECENT.map((r) => (
@@ -177,10 +180,10 @@ export default function LaunchScreen({ onFileChosen, onLoadSample }: LaunchScree
                 {r.file}
               </span>
               <span style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink-soft)" }}>
-                {r.when}
+                {t(r.when)} {r.time}
               </span>
               <span style={{ fontFamily: "var(--f-mono)", fontSize: "13px", fontWeight: 700, color: "var(--signal)" }}>
-                {r.contacts} cont.
+                {t("contactsShort", { n: r.contacts })}
               </span>
             </div>
           ))}

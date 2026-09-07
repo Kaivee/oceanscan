@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { TRAJECTORY, type Priority, type SonarTarget } from "@/lib/targets";
+import { useI18n } from "@/lib/i18n";
 
 const W = 940;
 const H = 620;
@@ -38,6 +39,7 @@ interface MapPanelProps {
 }
 
 export default function MapPanel({ targets }: MapPanelProps) {
+  const { t, classLabel } = useI18n();
   // Projection is anchored to the actual target positions (so the three objects
   // stay separated on the chart instead of collapsing to one dot). The vessel
   // track is drawn as context only when it falls inside the chart — it must not
@@ -138,18 +140,18 @@ export default function MapPanel({ targets }: MapPanelProps) {
         <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--ink)" }}>
           <div>
             <h3 style={{ fontFamily: "var(--f-display)", fontWeight: 700, fontSize: "15px", color: "var(--ink)" }}>
-              Survey Map
+              {t("surveyMap")}
             </h3>
             <p style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
-              Bristol Channel · datum WGS-84
+              {t("datum")}
             </p>
           </div>
           <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
-            {targets.length} geotagged target{targets.length !== 1 ? "s" : ""}
+            {targets.length === 1 ? t("targetOne", { n: targets.length }) : t("targetMany", { n: targets.length })}
           </span>
         </div>
 
-        <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" role="img" aria-label="Survey map">
+        <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" role="img" aria-label={t("surveyMap")}>
           <defs>
             <pattern id="graticule" width="60" height="60" patternUnits="userSpaceOnUse">
               <path d="M60 0H0V60" fill="none" stroke="#5A6A70" strokeWidth="0.4" opacity="0.14" />
@@ -232,7 +234,7 @@ export default function MapPanel({ targets }: MapPanelProps) {
                   <PinThumb id={t.id} />
                   <div>
                     <p style={{ fontFamily: "var(--f-mono)", fontSize: "11px", fontWeight: 700, color: "var(--ink)" }}>{t.id}</p>
-                    <p style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>{t.class}</p>
+                    <p style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>{classLabel(t.class)}</p>
                     <p style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink)" }}>
                       {Math.round(t.confidence * 100)}% · <b style={{ color: "var(--signal)" }}>{t.priority}</b>
                     </p>

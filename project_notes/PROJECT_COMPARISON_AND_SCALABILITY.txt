@@ -1,0 +1,119 @@
+================================================================================
+OCEANSCAN AI — COMPARISON, FUTURE PROSPECTS & SCALABILITY NOTES
+================================================================================
+(Companion to PROJECT_AND_RESEARCH_NOTES.txt — prepared Sept 2026)
+
+===============================================================================
+PART 1 — WHY OCEANSCAN IS BETTER THAN SIMILAR SITES
+===============================================================================
+
+vs GhostNetZero (Microsoft + WWF Germany + Accenture)  -> ghostnetzero.ai
+   Their model is DeepLabV3 SEMANTIC segmentation, basically binary
+   "net / no-net" pixel masks.
+   Ours is INSTANCE segmentation: every object gets its own bounding box
+   + pixel mask + class + confidence + a size estimate.
+   Difference: they get "a map area is polluted"; we get "here are 3 nets
+   at GPS X, Y, Z with sizes you can decide whether to retrieve."
+   Also ours is multi-class (ghost net / metal drum / shipwreck / natural
+   formation) with risk ranking; they are single-class.
+
+vs GhostVision (Bodine et al., 2026, peer-reviewed)
+   Peer-reviewed, but single-class (crab pots), detection-only, F1 approx
+   0.51 raw / 0.73 tuned.
+   Our measured recall 0.970 and mAP50 0.985 are far higher, and we add
+   masks + geotagging + retrieval routing.
+
+vs JalDrishti / UW-dash / Marine-object-detection
+   These are OPTICAL-CAMERA systems (RGB underwater photos).
+   Sonar is a materially harder modality: no colour, speckle noise,
+   acoustic shadows, variable gain.
+   Our preprocessing (CLAHE + bilateral speckle reduction + 16->8 bit
+   scaling) and acoustic-aware augmentation (no vertical flip, no hue
+   shift -- physically motivated) are what RGB models don't need and
+   don't have.
+
+vs RAPID / Anemo / WHOI IFCB dashboards
+   Plankton / monitoring dashboards, NOT debris detection. Different
+   problem; the only shared idea is "dashboard rendered over detections."
+
+HONEST COUNTERPOINTS (do NOT overclaim these):
+   - GhostNetZero has real deployment, a human-in-the-loop validation
+     queue, and industry partners (WWF divers, Accenture). That
+     infrastructure is beyond what we have.
+   - GhostVision is peer-reviewed and was validated across 1500+ survey
+     acres with low-cost hardware -- real-world scale evidence.
+   - Our dataset is small (1545 images); Shipwreck has only 16 test
+     images, so per-class claims beyond nets/drums are thin.
+
+ONE-LINER FOR A JUDGE:
+   "The alternatives either detect boxes, label pixels, or work on
+    optical cameras; mine is the only one that tiers multi-class debris
+    on sonar, sizes it via instance masks, geotags it from EXIF, and
+    outputs a prioritized ROV recovery route -- with 98.5% validation
+    mAP50 and 97% recall tuned for the costly failure (a missed net)."
+
+===============================================================================
+PART 2 — FUTURE PROSPECTS
+===============================================================================
+
+1. Human-in-the-loop review queue (GhostNetZero's model)
+   Route low-confidence detections to a human reviewer; feedback re-enters
+   training. Directly solves our recall-vs-precision trade-off at scale.
+
+2. Self-supervised pretraining (Marine Debris FLS research)
+   Sonar data is scarce. Pretrain on unlabeled sonar with pretext tasks
+   (e.g. patch matching) to reduce labeled-data needs for rare classes
+   like shipwrecks.
+
+3. Physics-based synthetic augmentation (GhostVision's approach)
+   Composite debris objects onto real seafloor with beam-attenuation /
+   light physics. The strongest way to grow rare classes.
+
+4. Multi-sensor fusion (UW-dash pattern)
+   Sonar + optical/AI camera aligned by GPS, plus multi-frequency sonar
+   fusion, to boost confidence at each detection point.
+
+5. On-vessel edge + streaming (RAPID Jetson AGX Orin pattern)
+   TensorRT on embedded GPU; process ongoing survey strips instead of
+   single image uploads.
+
+6. Debris density heatmaps (Anemo MOSAR pattern)
+   Hot-spot mapping for survey planning and cleanup prioritization.
+   We already export GeoJSON, so this is a small addition.
+
+7. Metrology calibration
+   Ground-truth the mask-to-dimension mapping against known-sized targets
+   so ROV recovery can be payload-planned (L x W x H in metres).
+
+8. Autonomous-robot integration (TUM diving-robot / UW-dash tracking)
+   Feed detections to ROV/AUV recovery systems with Deep SORT-style
+   tracking continuity.
+
+===============================================================================
+PART 3 — SCALABILITY OF THE MODEL
+===============================================================================
+
+INFERENCE SCALES WELL:
+   - YOLOv8s-seg is about 7 MB, single-pass, low latency.
+   - FastAPI scales horizontally behind a load balancer.
+   - ONNX / TensorRT export lets each survey vessel run its own edge
+     instance off the datacenter (near-real-time aboard).
+
+FLEET ARCHITECTURE (our natural scaling story):
+   Many vessels -> each runs an edge instance -> posts only geotagged
+   detections -> central API aggregates into ONE live national debris map
+   (the WHOI IFCB / Cefas RAPID model). Our CSV/GeoJSON export already
+   makes the data format-compatible for this pattern right now.
+
+BOTTLENECKS (be honest about these at scale):
+   a) Small dataset + rare classes cap generalization. Needs real data
+      collection and synthetic data generation.
+   b) With millions of pings, a ~2-4% false-alarm rate becomes a noise
+      problem -> the human-in-the-loop filter becomes necessary.
+   c) The unmeasured EMPTY-SEAFLOOR false-positive rate is the biggest
+      unknown for national-scale deployment. Quantifying it is the
+      single highest-value next experiment.
+
+===============================================================================
+END
+===============================================================================

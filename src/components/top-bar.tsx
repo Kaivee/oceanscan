@@ -1,12 +1,9 @@
 "use client";
 
 import type { TabKey } from "@/lib/targets";
+import { useI18n, type Lang, type UiKey } from "@/lib/i18n";
 
-const STEPS: { key: TabKey; label: string }[] = [
-  { key: "frame", label: "Frame" },
-  { key: "map", label: "Map" },
-  { key: "brief", label: "Brief" },
-];
+const STEPS: { key: TabKey }[] = [{ key: "frame" }, { key: "map" }, { key: "brief" }];
 
 function RadarMark() {
   return (
@@ -37,6 +34,7 @@ export default function TopBar({
   surveyName,
 }: TopBarProps) {
   const onStart = view === "start";
+  const { lang, setLang, t } = useI18n();
 
   return (
     <header
@@ -48,7 +46,7 @@ export default function TopBar({
         onClick={() => onViewChange("start")}
         className="flex items-center"
         style={{ gap: "11px", background: "transparent", border: "none", cursor: "pointer" }}
-        title="New Survey"
+        title={t("newSurvey")}
       >
         <RadarMark />
         <span
@@ -58,6 +56,37 @@ export default function TopBar({
           OCEANSCAN
         </span>
       </button>
+
+      {/* Language switcher — always visible */}
+      <div
+        className="flex items-center"
+        style={{ marginLeft: "22px", border: "1px solid var(--line-strong)" }}
+      >
+        {(["en", "hi"] as Lang[]).map((l) => {
+          const active = lang === l;
+          return (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              aria-pressed={active}
+              style={{
+                background: active ? "var(--ink)" : "transparent",
+                color: active ? "var(--surface)" : "var(--ink)",
+                border: "none",
+                padding: "6px 12px",
+                fontFamily: "var(--f-mono)",
+                fontSize: "11px",
+                letterSpacing: "0.06em",
+                fontWeight: active ? 700 : 400,
+                cursor: "pointer",
+                textTransform: "uppercase",
+              }}
+            >
+              {l === "en" ? "EN" : "हिंदी"}
+            </button>
+          );
+        })}
+      </div>
 
       {/* Start / New Survey control — moved out of the stepper, renamed */}
       <button
@@ -76,7 +105,7 @@ export default function TopBar({
           cursor: "pointer",
         }}
       >
-        New Survey
+        {t("newSurvey")}
       </button>
 
       {/* Pipeline stepper — no numbers */}
@@ -101,7 +130,7 @@ export default function TopBar({
                 borderBottom: active ? "2px solid var(--signal)" : "2px solid transparent",
               }}
             >
-              {s.label}
+              {t(`tab.${s.key}` as UiKey)}
             </button>
           );
         })}
@@ -115,7 +144,7 @@ export default function TopBar({
             className="hidden md:inline"
             style={{ fontFamily: "var(--f-mono)", fontSize: "10.5px", color: "var(--ink-soft)" }}
           >
-            MODEL U-NET-SSS-EDGE · 38MS/FRAME
+            {t("modelChip")}
           </span>
           <button
             onClick={onUploadLog}
@@ -129,7 +158,7 @@ export default function TopBar({
               cursor: "pointer",
             }}
           >
-            Upload Log
+            {t("uploadLog")}
           </button>
           <button
             onClick={onRunDetection}
@@ -144,7 +173,7 @@ export default function TopBar({
               cursor: "pointer",
             }}
           >
-            Run Detection
+            {t("runDetection")}
           </button>
         </div>
       )}

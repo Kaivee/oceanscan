@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ApiResponse } from "@/lib/targets";
+import { useI18n } from "@/lib/i18n";
 
 const INFERENCE_URL =
   process.env.NEXT_PUBLIC_INFERENCE_URL?.replace(/\/+$/, "") ||
@@ -26,6 +27,7 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
   const [detectionCount, setDetectionCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { t } = useI18n();
 
   // Real edge inference only (POST /api/v1/detect). No fake fallback — if the
   // backend is unreachable we surface an error instead of fabricating detections.
@@ -69,25 +71,25 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
             ? err.message
             : "The inference API could not be reached";
         setError(
-          `${detail}. Start the backend at ${INFERENCE_URL} (uvicorn api.main:app) and retry.`,
+          `${detail}. ${t("errorBackendSuffix", { url: INFERENCE_URL })}`,
         );
         setPhase("error");
       }
     },
-    [onDetect],
+    [onDetect, t],
   );
 
   const handleFile = useCallback(
     (file: File) => {
       if (!VALID_EXT.some((ext) => file.name.toLowerCase().endsWith(ext))) {
-        setError(`Unsupported format. Accepted: .XTF, .JSF, .PNG, .JPG, .TIFF`);
+        setError(t("unsupportedFormat"));
         setPhase("error");
         return;
       }
       setError("");
       sendToApi(file);
     },
-    [sendToApi],
+    [sendToApi, t],
   );
 
   const reset = useCallback(() => {
@@ -129,10 +131,10 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
           style={{ borderBottom: "1px solid var(--ink)" }}>
           <div>
             <h3 style={{ fontFamily: "var(--f-display)", fontWeight: 700, fontSize: "15px", color: "var(--ink)" }}>
-              Ingest Survey Log
+              {t("ingestSurveyLog")}
             </h3>
             <p style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
-              .XTF · .JSF · .PNG — edge inference
+              {t("edgeInferenceHint")}
             </p>
           </div>
           <button onClick={close} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "var(--ink-soft)" }}>
@@ -165,10 +167,10 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
                 <path d="M4 20h16" />
               </svg>
               <p className="mt-4" style={{ fontFamily: "var(--f-mono)", fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>
-                {error ? error : "Drop a sonar log here"}
+                {error ? error : t("dropLogHere")}
               </p>
               <p className="mt-1" style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--ink-soft)" }}>
-                or click to browse
+                {t("orClickBrowse")}
               </p>
             </div>
           ) : (
@@ -183,10 +185,12 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
                   </p>
                   <p style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
                     {phase === "done"
-                      ? `${detectionCount} anomal${detectionCount === 1 ? "y" : "ies"} detected`
+                      ? detectionCount === 1
+                        ? t("anomalyOne", { n: detectionCount })
+                        : t("anomalyMany", { n: detectionCount })
                       : phase === "detecting"
-                        ? "Running inference..."
-                        : `Transferring to edge node · ${Math.floor(progress)}%`}
+                        ? t("runningInference")
+                        : t("transferring", { p: Math.floor(progress) })}
                   </p>
                 </div>
               </div>
@@ -199,7 +203,7 @@ export default function UploadModal({ open, onClose, onDetect, initialFile }: Up
                   className="mt-5 w-full"
                   style={{ background: "var(--ink)", color: "#FFFFFF", padding: "11px", fontFamily: "var(--f-mono)", fontSize: "12px", cursor: "pointer" }}
                 >
-                  Continue to Frame
+                  {t("continueToFrame")}
                 </button>
               )}
             </div>

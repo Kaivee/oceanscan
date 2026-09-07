@@ -1,0 +1,220 @@
+================================================================================
+OCEANSCAN AI — PROJECT EXPLANATION & RESEARCH NOTES
+================================================================================
+Prepared for: hackathon presentation / teacher Q&A
+Project: AI marine sonar debris detection (side-scan & forward-look sonar)
+Location: this repo (README.md has the technical setup; this file is for
+explaining the project and defending it as a research topic).
+
+================================================================================
+PART 1 — WHAT THE PROJECT IS
+================================================================================
+
+OceanScan AI is an end-to-end system for finding underwater marine debris
+(ghost nets, lost fishing gear, sunken metal drums, shipwrecks) from sonar
+imagery, and turning each detection into an actionable, geotagged cleanup item.
+
+Why sonar? Underwater you cannot see with cameras (turbid water, no light).
+Surveyors scan the seafloor with side-scan sonar (SSS) or forward-look sonar
+(FLS, e.g. ARIS3K). The output is acoustic imagery: grayscale backscatter
+with shadows, speckle noise, and no colour. This is a hard, specialised
+image-processing problem, not "normal" computer vision.
+
+The system has three parts:
+
+1. ML MODEL (the brain)
+   - Type: SUPERVISED DEEP LEARNING — a convolutional neural network (CNN),
+     specifically YOLOv8-seg (Ultralytics), trained for INSTANCE SEGMENTATION.
+   - Instance segmentation means for every object it outputs:
+       * a bounding box (where it is)
+       * a class label (WHAT it is)
+       * a confidence score (0-1)
+       * a pixel-level mask (its exact shape)  <- this is the "--seg" part
+   - Classes: Ghost Net, Metal Drum, Shipwreck, Natural Formation.
+     Each class maps to a risk level (HIGH / MEDIUM / LOW).
+   - Fine-tuned from the COCO-pretrained yolov8s-seg.pt via TRANSFER LEARNING
+     (start from weights that already know "object shapes", adapt to sonar).
+   - Trained on 1545 real sonar images (val 197 / test 186), combining two
+     public datasets: UATD and Marine Debris FLS (combine_datasets.py,
+     clean_dataset.py in the ml/ folder).
+
+2. INFERENCE API (the bridge)
+   - A FastAPI server (python ml/) exposing:
+       POST /api/v1/detect  -> upload image, get detections
+       GET  /api/v1/health  -> model/device status
+   - Before inference it preprocesses the acoustic image:
+       CLAHE contrast equalization, bilateral speckle-noise reduction,
+       backscatter normalisation, 16-bit -> 8-bit scaling.
+   - It also reads the image EXIF geotag, so every detection inherits real
+     GPS coordinates. Optional Grad-CAM heatmap for explainability.
+
+3. FRONTEND (the "survey workstation")
+   - A Next.js / TypeScript / Tailwind app styled like a vintage admiralty chart.
+   - "Ingest Survey Log" uploads a sonar image -> sends it to the real API ->
+     draws the detected objects as pins on a nautical map, with class,
+     confidence, size estimate, depth, GPS, and risk priority.
+   - Export findings as CSV / GeoJSON and generate an ROV retrieval route
+     (priority-weighted, nearest-first).
+
+IMPORTANT for honesty in a demo:
+- The upload flow uses the REAL model (no fake detections — if the API is
+  down it shows an error instead of inventing results).
+- ONLY the "Load a sample survey" button uses hardcoded demo data (a shortcut).
+
+================================================================================
+PART 2 — MEASURED RESULTS (real numbers we ran)
+================================================================================
+
+Best trained model: ml/runs/segment/train5/weights/best.pt
+
+VALIDATION (best epoch, on held-out val set):
+  - mAP50 (box)     = 0.985   (98.5%)
+  - mAP50-95 (box)  = 0.841   (84.1%)
+  - Precision       = 0.949   (94.9%  of detections are real)
+  - Recall          = 0.970   (97%    of real objects are found)
+
+TEST SET (all 186 held-out test images, computed by running the model):
+  - Exact class-set match: 162/186 = 87.1%
+  - Partial match:         12.9%
+  - Miss (found nothing):   0%
+  - Per-class recall: Ghost Net 97.7%, Metal Drum 99.4%,
+                      Natural Formation 100%, Shipwreck 100%
+
+FALSE POSITIVES / FALSE NEGATIVES (the "it saw something but there was
+nothing" question):
+  - conf=0.3 (API default): 8/186 images (4.3%) had a false-positive
+    detection; only 8 of 390 detections were false positives (~2%).
+  - conf=0.5 (stricter):    4/186 (2.2%) false-positive images, but missed
+    objects rise to 5.9% of images.
+  - Trade-off: lower confidence threshold => fewer missed objects but more
+    false alarms; higher threshold => fewer false alarms but more misses.
+  - Design stance: we treat MISSED debris as the costly failure (a ghost net
+    is never removed, keeps killing wildlife), so the system is tuned toward
+    recall (0.970) and accepts ~2-4% false alarms.
+  - Built-in false-alarm defence:
+       * "Natural Formation" is a real class, so rocks / sand ripples that
+         LOOK like debris are predicted as low-risk rocks, not as debris.
+       * Cross-class NMS suppresses duplicate/conflicting boxes on one object.
+       * CLAHE + speckle reduction removes acoustic noise that triggers FPs.
+  - Caveat: the test set contained no fully-empty images, so the pure
+    "nothing there but model saw something" rate on blank seafloor was not
+    measured. That would be quantified by running the model on confirmed
+    empty sonar strips (target: a few percent at most).
+
+================================================================================
+PART 3 — RESEARCH JUSTIFICATION (why is this better than alternatives?)
+================================================================================
+
+The current state of the art / baseline in industry:
+
+1. MANUAL HUMAN REVIEW
+   Trained hydrographers/analysts visually scan thousands of sonar pings.
+   -> Slow, subjective, expensive, error-prone, does not scale to large
+      surveys. This is the real baseline OceanScan replaces.
+
+2. CLASSICAL SIGNAL PROCESSING / CV
+   Thresholding, connected components, template matching, edge-based methods.
+   -> Can find "something bright on the seafloor" but cannot reliably
+      CLASSIFY debris types, cannot SEGMENT irregular objects (nets!),
+      and breaks under acoustic speckle / variable gain.
+
+3. GENERIC OPTICAL-IMAGE DETECTORS (R-CNN/YOLO trained on photos)
+   Models trained on RGB/optical images transfer poorly to sonar because the
+   modality is fundamentally different: grayscale backscatter, shadows,
+   speckle, no colour/texture semantics as in photos.
+
+4. PRIOR SONAR ML WORK
+   Some ML-on-sonar papers exist (e.g. UATD is itself a research dataset),
+   but much of it is single-class detection or classification only, not a
+   multi-class, deployable, geotagged end-to-end system.
+
+WHY OCEANSCAN IS A MEANINGFUL IMPROVEMENT (novelty points to argue):
+
+  a) INSTANCE SEGMENTATION, not just detection.
+     The pixel masks estimate real object DIMENSIONS (L x W x H), which are
+     needed for recovery planning (is it worth sending an ROV?). A box alone
+     cannot do this for irregular shapes like nets.
+
+  b) DOMAIN-AWARE TRAINING.
+     Trained and validated on REAL sonar datasets (UATD + Marine Debris FLS),
+     not synthetic. Held-out test success is on real acoustic data.
+
+  c) DOMAIN-AWARE AUGMENTATION (a genuine research insight).
+     Augmentation is chosen to respect acoustic physics:
+        - horizontal flip allowed (swaths are symmetric)
+        - VERTICAL flip DISABLED (it flips shadow geometry and breaks the
+          acoustic 'high-backscatter-then-shadow' signature)
+        - hue/saturation shift DISABLED (sonar is grayscale)
+        - only mild brightness variation to mimic gain changes.
+     These choices are physically motivated, and are an easy, defensible
+     "research decision" to present.
+
+  d) MULTI-CLASS DEBRIS + RISK RANKING.
+     The system distinguishes ghost nets (high entanglement risk),
+     metal drums, shipwrecks, and natural formations, and maps classes to
+     recovery priority. This is decision support, not just detection.
+
+  e) GEOTAGGED END-TO-END LOOP.
+     Raw sonar image + EXIF GPS -> detection -> automatic placement on a map
+     with coordinates -> CSV/GeoJSON export -> priority-weighted ROV
+     retrieval route. This closes the gap between "an algorithm found a box"
+     and "the cleanup crew has a GPS point and a plan to act on".
+
+  f) EDGE-DEPLOYABLE.
+     Single-pass YOLO inference with low latency (latency measured per
+     request), and ONNX / TensorRT export options — it can run on the survey
+     vessel near-real-time, not just in a datacenter.
+
+HOW TO SAY IT IN ONE SENTENCE FOR THE TEACHER:
+  "We fine-tune a YOLOv8-seg deep CNN on real side-scan sonar to segment and
+   classify ghost nets, drums and wrecks, and we close the full loop by
+   geotagging each detection from image EXIF data and routing ROV recovery.
+   Compared to manual review and classical thresholding, we deliver measured
+   ~98% validation mAP50 and ~87-99% test accuracy with automatic sizing,
+   geo-location and prioritisation, in near-real-time."
+
+================================================================================
+PART 4 — LIMITATIONS & FUTURE WORK (research credibility)
+================================================================================
+
+Every research pitch should state weaknesses honestly:
+
+  - RARE-CLASS EXPOSURE: Shipwreck had only 16 test images; rare classes
+    need more data (synthetic augmentation / data collection).
+  - NO OPTICAL-CAMERA FUSION yet: fusing sonar with optical/AI camera
+    detections at the same GPS point would boost confidence.
+  - SIZE/DEPTH ESTIMATES are approximated from pixel geometry; they need
+    calibration against known-sized ground-truth targets for true metrology.
+  - NOISE ROBUSTNESS: behaviour on heavy 16-bit acoustic noise / very turbid
+    environs is not exhaustively tested.
+  - EMPTY-SEAFLOOR FALSE-POSITIVE RATE not yet measured (see Part 2).
+  - SINGLE-SENSOR: real operational surveys may need multi-frequency sonar
+    fusion or a human-in-the-loop review queue for low-confidence objects.
+
+Potential future directions to mention:
+  - Multi-sensor fusion (sonar + optical) with GPS alignment
+  - Active-learning loop: low-confidence detections get human review and
+    re-enter training
+  - Real-time GPU/edge deployment tests (TensorRT)
+  - Metrology: calibrate pixel masks to true dimensions using known targets
+
+================================================================================
+PART 5 — WHAT TO LEARN / KNOW (so you can answer follow-up questions)
+================================================================================
+
+1. Deep learning basics: CNN, convolution, feature maps, why they work for
+   images.
+2. Object detection vs classification vs segmentation; what YOLO does.
+3. Transfer learning / fine-tuning (COCO weights -> sonar).
+4. Metrics: IoU, precision, recall, mAP50, mAP50-95 — be able to define and
+   read results.csv.
+5. Data pipeline: label format (class x y w h), train/val/test split,
+   dataset cleaning, augmentation.
+6. Deployment: FastAPI serving, preprocessing (CLAHE, speckle), EXIF/GPS,
+   ONNX/TensorRT export.
+7. The trade-off story: recall vs precision, false positives vs false
+   negatives, why recall matters more for cleanup missions.
+
+================================================================================
+END
+================================================================================

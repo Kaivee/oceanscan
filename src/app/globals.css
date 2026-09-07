@@ -39,8 +39,8 @@
   --line-strong: #B9B9B2;
   --signal: #FF5A1F;
   --signal-dim: rgba(255, 90, 31, 0.14);
-  --f-display: var(--font-archivo), "Archivo", sans-serif;
-  --f-mono: var(--font-plex-mono), "IBM Plex Mono", monospace;
+  --f-display: var(--font-archivo), "Archivo", var(--font-noto-deva), "Noto Sans Devanagari", sans-serif;
+  --f-mono: var(--font-plex-mono), "IBM Plex Mono", var(--font-noto-deva), "Noto Sans Devanagari", monospace;
 }
 
 html,

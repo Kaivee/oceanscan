@@ -7,6 +7,7 @@ import FrameView from "@/components/analyze-tab";
 import MapPanel from "@/components/map-panel";
 import BriefView from "@/components/report-tab";
 import UploadModal from "@/components/upload-modal";
+import { useI18n } from "@/lib/i18n";
 import {
   SAMPLE_TARGETS,
   SAMPLE_SURVEY,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/targets";
 
 export default function Home() {
+  const { t } = useI18n();
   const [view, setView] = useState<TabKey>("start");
   const [hasSurvey, setHasSurvey] = useState(false);
   const [targets, setTargets] = useState<SonarTarget[]>([]);
@@ -85,7 +87,7 @@ export default function Home() {
       </main>
 
       <footer className="py-4 text-center" style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--ink-soft)" }}>
-        OCEANSCAN · HYDROGRAPHIC DEBRIS SURVEY
+        {t("footer")}
       </footer>
 
       <UploadModal
