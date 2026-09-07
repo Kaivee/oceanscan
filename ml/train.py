@@ -265,7 +265,7 @@ def train(
         **kwargs,
     )
 
-    best_weights = Path(project) / name / "weights" / "best.pt"
+    best_weights = Path(results.save_dir) / "weights" / "best.pt"
     logger.info(f"Training complete. Best weights: {best_weights}")
 
     return best_weights

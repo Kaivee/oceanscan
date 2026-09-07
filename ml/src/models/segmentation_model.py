@@ -80,11 +80,13 @@ class SonarSegmentationModel:
         device: str | None = None,
         conf_threshold: float = 0.5,
         iou_threshold: float = 0.45,
+        tighten_full_frame: bool = True,
     ) -> None:
         self.model_path = Path(model_path)
         self.device = device or _resolve_device()
         self.conf_threshold = conf_threshold
         self.iou_threshold = iou_threshold
+        self.tighten_full_frame = tighten_full_frame
         self._model: YOLO | None = None
         self._load_model()
 
@@ -184,6 +186,20 @@ class SonarSegmentationModel:
                         ys = [float(pt[1]) for pt in mask_data]
                         bbox = [int(min(xs)), int(min(ys)), int(max(xs)), int(max(ys))]
 
+                # Second-stage localization: when the detection degenerately spans
+                # nearly the whole frame (common on tight single-object SSS crops),
+                # refine the footprint to the strongest contiguous sonar return.
+                if self.tighten_full_frame:
+                    tight = self._tighten_sonar_box(img_bgr, bbox)
+                    if tight is not None:
+                        bbox = tight
+                        polygon = [
+                            [float(bbox[0]) / w, float(bbox[1]) / h],
+                            [float(bbox[2]) / w, float(bbox[1]) / h],
+                            [float(bbox[2]) / w, float(bbox[3]) / h],
+                            [float(bbox[0]) / w, float(bbox[3]) / h],
+                        ]
+
                 class_name = CLASS_NAMES[cls_id] if cls_id < len(CLASS_NAMES) else f"class_{cls_id}"
                 risk = RISK_MAP.get(class_name, "UNKNOWN")
 
@@ -207,6 +223,53 @@ class SonarSegmentationModel:
             image_shape=[h, w],
             model_name=self.model_path.stem,
         )
+
+    @staticmethod
+    def _tighten_sonar_box(img_bgr: np.ndarray, bbox: list[int]) -> list[int] | None:
+        """Refine a near-full-frame detection box to the strongest contiguous
+        sonar return. Detection + classification come from the model; this
+        second-stage localization reformers the box to the bright echo region.
+        Returns the tightened [x1, y1, x2, y2] box, or None if the input box
+        is already localized or no reliable bright region is found.
+        """
+        h, w = img_bgr.shape[:2]
+        x1, y1, x2, y2 = bbox
+        bw, bh = max(0, x2 - x1), max(0, y2 - y1)
+        box_frac = (bw * bh) / max(1, h * w)
+        # Only re-localize degenerate, near-full-frame detections.
+        if box_frac < 0.5:
+            return None
+
+        try:
+            gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+            # Sonar targets are bright echoes on a darker seabed — keep the
+            # bright Otsu class (it may be the minority when the object is small).
+            _, thr = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            kernel = np.ones((9, 9), np.uint8)
+            cl = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel)
+            cl = cv2.morphologyEx(cl, cv2.MORPH_OPEN, kernel)
+            n, _, stats, _ = cv2.connectedComponentsWithStats(cl)
+            if n < 2:
+                return None
+            areas = stats[1:, cv2.CC_STAT_AREA]
+            best = int(np.argmax(areas)) + 1
+            bx, by, bw_st, bh_st = (
+                int(stats[best, cv2.CC_STAT_LEFT]),
+                int(stats[best, cv2.CC_STAT_TOP]),
+                int(stats[best, cv2.CC_STAT_WIDTH]),
+                int(stats[best, cv2.CC_STAT_HEIGHT]),
+            )
+            tight = [bx, by, bx + bw_st, by + bh_st]
+            # Only accept a meaningful shrink, and never expand past the frame.
+            t_frac = ((tight[2] - tight[0]) * (tight[3] - tight[1])) / max(1, h * w)
+            if t_frac >= box_frac * 0.95 or t_frac >= 0.9:
+                return None
+            return [
+                max(0, tight[0]), max(0, tight[1]),
+                min(w, tight[2]), min(h, tight[3]),
+            ]
+        except Exception:
+            return None
 
     @staticmethod
     def _cross_class_nms(detections: list[Detection], iou_threshold: float = 0.3) -> list[Detection]:

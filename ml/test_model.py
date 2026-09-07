@@ -4,7 +4,7 @@
 from pathlib import Path
 from ultralytics import YOLO
 
-WEIGHTS = Path("runs/segment/train/weights/best.pt")
+WEIGHTS = Path("runs/segment/train11/weights/best.pt")
 VAL_IMGS = Path("data/sonar_dataset/val/images")
 
 model = YOLO(str(WEIGHTS))

@@ -55,8 +55,12 @@ async def lifespan(app: FastAPI):
     global _model, _gradcam, _model_path
 
     model_path = Path(_model_path)
-    # Try to find a trained model first — prefer the best-performing run (train5).
+    # Try to find a trained model first — prefer the newest real-data run (train11, held-out SSS test verified).
     for candidate in [
+        "runs/segment/train11/weights/best.pt",
+        "runs/segment/train9/weights/best.pt",
+        "runs/segment/train7/weights/best.pt",
+        "runs/segment/train6/weights/best.pt",
         "runs/segment/train5/weights/best.pt",
         "runs/segment/train/weights/best.pt",
         "model.pt",
